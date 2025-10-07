@@ -8,7 +8,5 @@ urlpatterns = [
     path("users/add/", add_user, name="add_user"),              
     path("users/<int:user_id>/", get_user, name="get_user"),    
     path("users/<int:user_id>/update/", update_user, name="update_user"),  
-    path("users/<int:user_id>/delete/", delete_user, name="delete_user"),  
-    
-    path("users/<int:user_id>/", include("api.users.shifts.urls")),              
+    path("users/<int:user_id>/delete/", delete_user, name="delete_user"),
 ]
