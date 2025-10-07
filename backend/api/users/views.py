@@ -10,7 +10,7 @@ def list_users(request):
     return Response([])
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
+@permission_classes([IsAuthenticated])
 def get_user(request, user_id):
     return Response({"user_id": user_id})
 
