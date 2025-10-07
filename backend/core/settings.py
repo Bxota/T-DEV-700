@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "rest_framework",
     "rest_framework_simplejwt",
+    "drf_spectacular",
     "api",
 ]
 
@@ -46,6 +47,25 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Time Manager API",
+    "DESCRIPTION": "API Django + DRF + JWT",
+    "VERSION": "1.0.0",
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True},
+    "SECURITY": [{"BearerAuth": []}],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
+    "SCHEMA_PATH_PREFIX": r"/api",
 }
 
 MIDDLEWARE = [
