@@ -1,7 +1,10 @@
-.env
-*.env
-**/.env*
-.env.dev
-.env.prod
-.env.production
-.env.development
+.env*
+!*.example
+backend/.env*
+frontend/.env*
+secrets/*
+node_modules
+dist
+__pycache__/
+*.pyc
+.idea

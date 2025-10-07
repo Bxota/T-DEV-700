@@ -1,0 +1,59 @@
+name: ${PROJECT_NAME}-dev
+
+services:
+  db:
+    image: "postgres:${POSTGRES_VERSION}"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    ports:
+      - "${PORT_DB}:${PORT_DB}"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION}
+        PORT_BACK: ${PORT_BACK}
+    env_file:
+      - ./backend/.env.dev
+    volumes:
+      - ./backend:/app:rw
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:${PORT_BACK}"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT_BACK}:${PORT_BACK}"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+        PORT_FRONT: ${PORT_FRONT}
+    env_file:
+      - ./frontend/.env.dev
+    volumes:
+      - ./frontend:/app:rw
+      - /app/node_modules
+    ports:
+      - "${PORT_FRONT}:${PORT_FRONT}"
+    command: ["npm","run","dev","--","--host","0.0.0.0","--port","${PORT_FRONT}"]
+
+volumes:
+  pgdata:
