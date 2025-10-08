@@ -20,29 +20,31 @@ const Dashboard = () => {
 
   const handleClick = (type) => {
     const now = new Date();
-    const formattedTime = now.getHours().toString().padStart(2, '0') + ':' +
-                          now.getMinutes().toString().padStart(2, '0');
-    setPointeages({
-      ...pointeages,
-      [type]: formattedTime,
-    });
+    const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
+
+    setPointeages({ ...pointeages, [type]: formattedTime });
   };
 
   const getColor = (type) => {
     if (!pointeages[type]) return 'black';
-
     const [realH, realM] = pointeages[type].split(':').map(Number);
     const [plannedH, plannedM] = heuresPrevues[type].split(':').map(Number);
 
     if (type.includes('In')) {
-      return (realH < plannedH || (realH === plannedH && realM <= plannedM)) ? 'green' : 'red';
+      return realH < plannedH || (realH === plannedH && realM <= plannedM)
+        ? 'green'
+        : 'red';
     } else {
-      return (realH > plannedH || (realH === plannedH && realM >= plannedM)) ? 'green' : 'red';
+      return realH > plannedH || (realH === plannedH && realM >= plannedM)
+        ? 'green'
+        : 'red';
     }
   };
 
-  // Calcul du pourcentage de présence pour le cercle
-  const totalSlots = 4; // matinIn, matinOff, apresMidiIn, apresMidiOff
+  const totalSlots = 4;
   const filledSlots = Object.values(pointeages).filter(Boolean).length;
   const percentage = Math.round((filledSlots / totalSlots) * 100);
 
@@ -61,15 +63,40 @@ const Dashboard = () => {
           </div>
           <div className="button-row">
             <div>
-              <button onClick={() => handleClick('matinIn')}>In</button>
-              <span className="time" style={{ color: pointeages.matinIn ? getColor('matinIn') : 'black', marginLeft: '10px' }}>
-                {pointeages.matinIn ? `Réel ${pointeages.matinIn}` : `Prévu ${heuresPrevues.matinIn}`}
+              <button
+                className="pointage-button"
+                onClick={() => handleClick('matinIn')}
+              >
+                In
+              </button>
+              <span
+                className="pointage-time"
+                style={{
+                  color: pointeages.matinIn ? getColor('matinIn') : 'black',
+                }}
+              >
+                {pointeages.matinIn
+                  ? `Réel ${pointeages.matinIn}`
+                  : `Prévu ${heuresPrevues.matinIn}`}
               </span>
             </div>
+
             <div>
-              <button onClick={() => handleClick('matinOff')}>Off</button>
-              <span className="time" style={{ color: pointeages.matinOff ? getColor('matinOff') : 'black', marginLeft: '10px' }}>
-                {pointeages.matinOff ? `Réel ${pointeages.matinOff}` : `Prévu ${heuresPrevues.matinOff}`}
+              <button
+                className="pointage-button"
+                onClick={() => handleClick('matinOff')}
+              >
+                Off
+              </button>
+              <span
+                className="pointage-time"
+                style={{
+                  color: pointeages.matinOff ? getColor('matinOff') : 'black',
+                }}
+              >
+                {pointeages.matinOff
+                  ? `Réel ${pointeages.matinOff}`
+                  : `Prévu ${heuresPrevues.matinOff}`}
               </span>
             </div>
           </div>
@@ -82,15 +109,44 @@ const Dashboard = () => {
           </div>
           <div className="button-row">
             <div>
-              <button onClick={() => handleClick('apresMidiIn')}>In</button>
-              <span className="time" style={{ color: pointeages.apresMidiIn ? getColor('apresMidiIn') : 'black', marginLeft: '10px' }}>
-                {pointeages.apresMidiIn ? `Réel ${pointeages.apresMidiIn}` : `Prévu ${heuresPrevues.apresMidiIn}`}
+              <button
+                className="pointage-button"
+                onClick={() => handleClick('apresMidiIn')}
+              >
+                In
+              </button>
+              <span
+                className="pointage-time"
+                style={{
+                  color: pointeages.apresMidiIn
+                    ? getColor('apresMidiIn')
+                    : 'black',
+                }}
+              >
+                {pointeages.apresMidiIn
+                  ? `Réel ${pointeages.apresMidiIn}`
+                  : `Prévu ${heuresPrevues.apresMidiIn}`}
               </span>
             </div>
+
             <div>
-              <button onClick={() => handleClick('apresMidiOff')}>Off</button>
-              <span className="time" style={{ color: pointeages.apresMidiOff ? getColor('apresMidiOff') : 'black', marginLeft: '10px' }}>
-                {pointeages.apresMidiOff ? `Réel ${pointeages.apresMidiOff}` : `Prévu ${heuresPrevues.apresMidiOff}`}
+              <button
+                className="pointage-button"
+                onClick={() => handleClick('apresMidiOff')}
+              >
+                Off
+              </button>
+              <span
+                className="pointage-time"
+                style={{
+                  color: pointeages.apresMidiOff
+                    ? getColor('apresMidiOff')
+                    : 'black',
+                }}
+              >
+                {pointeages.apresMidiOff
+                  ? `Réel ${pointeages.apresMidiOff}`
+                  : `Prévu ${heuresPrevues.apresMidiOff}`}
               </span>
             </div>
           </div>

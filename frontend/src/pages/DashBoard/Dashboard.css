@@ -1,75 +1,79 @@
 h1, p {
-    color: black;
-    display: flex;
-    justify-content: center;
+  color: black;
+  display: flex;
+  justify-content: center;
 }
 
+/* --- Structure générale --- */
 .section {
-    margin-bottom: 40px;
+  margin-bottom: 40px;
 }
 
 .section-title {
-    font-size: 22px;
-    margin-bottom: 20px;
-    color: #333;
-    border-bottom: 2px solid #007bff;
-    display: inline-block;
-    padding-bottom: 5px;
+  font-size: 22px;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  display: inline-block;
+  padding-bottom: 5px;
 }
 
 .bloc {
-    margin-bottom: 30px;
+  margin-bottom: 30px;
 }
 
-/* Titre centré au-dessus des boutons */
+/* --- Titre "Matin / Après-midi" --- */
 .bloc-title {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
 }
 
 .bloc-title h3 {
-    color: #333;
-    font-size: 20px;
+  color: #333;
+  font-size: 20px;
 }
 
-/* Ligne bouton In / Off */
+/* --- Disposition des boutons --- */
 .button-row {
-    display: flex;
-    justify-content: center; /* centre les deux boutons horizontalement */
-    gap: 50px; /* espacement entre In et Off */
+  display: flex;
+  justify-content: center;
+  gap: 50px; /* espace entre les deux groupes In/Off */
 }
 
-/* Conteneur de chaque bouton + heure */
 .button-row > div {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Boutons plus grands et même taille */
-button {
-    width: 100px;
-    padding: 15px 0;
-    cursor: pointer;
-    border: none;
-    background-color: #007bff;
-    color: white;
-    border-radius: 5px;
-    font-size: 18px;
-    transition: background-color 0.2s;
-    text-align: center;
+/* --- Boutons de pointage (même style qu'avant) --- */
+.pointage-button {
+  width: 100px;
+  padding: 15px 0;
+  cursor: pointer;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  font-size: 18px;
+  transition: background-color 0.2s;
+  text-align: center;
 }
 
-button:hover {
-    background-color: #0056b3;
+.pointage-button:hover {
+  background-color: #0056b3;
 }
 
-.time {
-    font-weight: bold;
-    font-size: 18px;
-    display: inline-block;
-    width: 100px;      /* fixe pour éviter le décalage */
-    text-align: left;
-    font-family: monospace; /* chiffres alignés */
+/* --- Texte à côté des boutons (span) --- */
+.pointage-time {
+  font-weight: bold;
+  font-size: 18px;
+  display: inline-block;
+  width: 100px;         /* fixe pour éviter le décalage */
+  text-align: left;
+  font-family: monospace; /* pour aligner les chiffres */
+  margin-left: 10px;
+  color: black;          /* couleur par défaut */
+  transition: color 0.2s ease;
 }
