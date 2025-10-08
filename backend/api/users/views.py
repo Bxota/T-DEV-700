@@ -1,4 +1,4 @@
-from rest_framework.decorators import permission_classes
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +8,26 @@ from drf_spectacular.utils import (
 )
 
 from api.permissions import HasTeamTagPermission
+
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="user_reports_retrieve",
+        tags=["Reports"],
+        summary="Récupérer un rapport détaillé sur un employé",
+        description="Retourne le rapport détaillé sur un employé",
+        responses={200: None},
+    ),
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_reports():
+    """
+    Rapport possibles : 
+    - calculer le taux de retard de l'employé
+    - voir son nombre d'absences
+    - indiquer le nombre d'heures travaillées
+    """
+    return Response({})
 
 @extend_schema_view(
     get=extend_schema(

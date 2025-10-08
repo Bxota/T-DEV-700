@@ -8,7 +8,6 @@ from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
 )
 
-
 from api.permissions import HasTeamTagPermission
 
 @extend_schema_view(
@@ -23,6 +22,13 @@ from api.permissions import HasTeamTagPermission
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
 def get_team_reports():
+    """
+    Rapport possibles : 
+    - calculer le taux de retard de l'équipe
+    - voir le nombre d'absences
+    - indiquer le nombre d'heures travaillées
+    - indiquer le nombre d'employés dans l'équipe
+    """
     return Response({})
 
 @extend_schema_view(
