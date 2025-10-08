@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from api.teams.service import TeamManager
+from db_manager.repositories.team_repository import TeamRepository
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
@@ -65,6 +66,8 @@ class TeamCollection(APIView):
         if isinstance(teams, dict) and "error" in teams:
             return Response(teams, status=status.HTTP_400_BAD_REQUEST)
         return Response({"teams": teams})
+        teams = TeamRepository.get_teams()
+        return Response(teams)
 
     def post(self, request):
         name = request.data.get("name")
@@ -125,6 +128,10 @@ class TeamDetail(APIView):
         if isinstance(team, dict) and "error" in team:
             return Response(team, status=status.HTTP_404_NOT_FOUND)
         return Response({"id": team.id, "name": team.name})
+        team = TeamRepository.get_team_by_id(team_id)
+        if team is None:
+            return Response({"detail": "Not found."}, status=404)
+        return Response({"team_id": team.id, "name": team.name})
 
     def put(self, request, team_id):
         name = request.data.get("name")
@@ -151,3 +158,7 @@ class TeamDetail(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+        success = TeamRepository.delete_team(team_id)
+        if not success:
+            return Response({"detail": "Not found."}, status=404)
+        return Response(status=204)
