@@ -1,30 +1,41 @@
-from rest_framework.decorators import api_view, permission_classes
+# api/teams/views.py
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from api.permissions import HasTeamTagPermission
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def list_teams(request):
-    return Response([])
+class TeamCollection(APIView):
+    permission_classes = [IsAuthenticated]
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def get_team(request, team_id):
-    return Response({"team_id": team_id})
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated()]  # ex: lecture simple
+        if self.request.method == "POST":
+            return [IsAuthenticated(), HasTeamTagPermission()]  # ex: création -> tag requis
+        return super().get_permissions()
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def add_team(request):
-    return Response({"ok": True, "user": request.user.username})
+    def get(self, request):
+        return Response([])
 
-@api_view(["PUT"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def update_team(request, team_id):
-    return Response({"updated": True, "team_id": team_id})
+    def post(self, request):
+        return Response({"ok": True, "user": request.user.username})
 
-@api_view(["DELETE"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def delete_team(request, team_id):
-    return Response({"deleted": True, "team_id": team_id})
+
+class TeamDetail(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated()]
+        if self.request.method == "PUT":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        if self.request.method == "DELETE":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        return [IsAuthenticated()]
+
+    def get(self, request, team_id):
+        return Response({"team_id": team_id})
+
+    def put(self, request, team_id):
+        return Response({"updated": True, "team_id": team_id})
+
+    def delete(self, request, team_id):
+        return Response({"deleted": True, "team_id": team_id})

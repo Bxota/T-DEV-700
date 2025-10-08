@@ -1,30 +1,41 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from api.permissions import HasTeamTagPermission
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def list_users(request):
-    return Response([])
+class UserCollection(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated()]
+        if self.request.method == "POST":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        return [IsAuthenticated()]
+    
+    def get(self, request, team_id):
+        return Response({"team_id": team_id})
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_user(request, user_id):
-    return Response({"user_id": user_id})
+    def post(self, request, team_id):
+        return Response({"updated": True, "team_id": team_id})
+    
+class UserDetail(APIView):
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated()]
+        if self.request.method == "PUT":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        if self.request.method == "DELETE":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        return [IsAuthenticated()]
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def add_user(request):
-    return Response({"ok": True, "user": request.user.username})
+    def get(self, request, team_id):
+        return Response({"team_id": team_id})
 
-@api_view(["PUT"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def update_user(request, user_id):
-    return Response({"updated": True, "user_id": user_id})
+    def put(self, request, team_id):
+        return Response({"updated": True, "team_id": team_id})
 
-@api_view(["DELETE"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
-def delete_user(request, user_id):
-    return Response({"deleted": True, "user_id": user_id})
+    def delete(self, request, team_id):
+        return Response({"deleted": True, "team_id": team_id})
