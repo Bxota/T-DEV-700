@@ -21,11 +21,6 @@ services:
       - "${PORT_DB}:${PORT_DB}"
 
   backend:
-    environment:
-      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
-      DJANGO_SUPERUSER_FIRST_NAME: ${DJANGO_SUPERUSER_FIRST_NAME}
-      DJANGO_SUPERUSER_LAST_NAME: ${DJANGO_SUPERUSER_LAST_NAME}
     build:
       context: ./backend
       dockerfile: Dockerfile
