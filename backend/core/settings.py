@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'db_manager',
 ]
 
+AUTH_USER_MODEL = "db_manager.Users"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
