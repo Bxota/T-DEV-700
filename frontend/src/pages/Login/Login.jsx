@@ -1,14 +1,34 @@
 import React, { useState } from 'react';
 import './Login.css';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../context/UserContext';
 
 const Login = () => {
+  const { setUser } = useUser();
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(''); // mock simple
+  const [error, setError] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Connexion avec:', { email, password });
-    // ici tu pourras ajouter la logique d’authentification
+
+    // Pour l’instant : création d’un utilisateur factice
+    try {
+      const nameFromEmail = email.split('@')[0];
+      const fakeUser = {
+        id: Date.now().toString(),
+        email,
+        name: nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1),
+        // avatarUrl: 'https://exemple.com/monavatar.png' // optionnel
+      };
+
+      setUser(fakeUser);   // écrit dans le UserContext + localStorage
+      navigate('/');       // redirige vers la page d’accueil
+    } catch (err) {
+      setError('Une erreur est survenue');
+    }
   };
 
   return (
@@ -24,6 +44,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </div>
 
@@ -35,8 +56,11 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
+
+          {error && <p style={{ color: 'crimson', marginTop: 8 }}>{error}</p>}
 
           <button type="submit" className="login-button">Se connecter</button>
         </form>

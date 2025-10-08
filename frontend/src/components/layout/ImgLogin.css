@@ -9,15 +9,33 @@
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  color: white;
+  background-color: #3498db; /* couleur par défaut pour les initiales */
 }
 
 .image-button img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .image-button:hover {
   transform: scale(1.1);
+}
+
+.image-button.initials {
+  background-color: #3498db; /* couleur pour les initiales */
+}
+
+.image-button.avatar {
+  background-size: cover;
+  background-position: center;
+  background-color: transparent; /* supprime la couleur de fond si image */
 }
