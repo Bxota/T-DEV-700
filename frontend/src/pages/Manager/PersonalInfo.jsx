@@ -5,9 +5,7 @@ export default function PersonalInfo() {
   const manager = {
     firstName: "Jean",
     lastName: "Dupont",
-    position: "Chef d'équipe",
-    email: "jean.dupont@entreprise.com",
-    phone: "06 23 45 67 89",
+    position: "Chef d'équipe"
   };
 
   // Horaires de la journée sélectionnée
@@ -35,7 +33,7 @@ export default function PersonalInfo() {
     tasksCompleted: 12,
     totalTasks: 15,
     hoursWorked: 7.5,
-    efficiency: 85,
+    delayRate: 85,
     weeklyGoal: 40
   };
 
@@ -55,7 +53,7 @@ export default function PersonalInfo() {
 
       {/* Section 2: Horaires de la journée */}
       <div className="daily-schedule">
-        <h3 className="section-title">Horaires du jour</h3>
+        <h3 className="section-title">Horaires</h3>
         <div className="schedule-date">{todaySchedule.date}</div>
         
         <div className="work-hours">
@@ -88,7 +86,7 @@ export default function PersonalInfo() {
 
       {/* Section 3: Statistiques personnelles */}
       <div className="personal-stats">
-        <h3 className="section-title">Mes statistiques</h3>
+        <h3 className="section-title">Statistiques</h3>
         
         <div className="stat-grid">
           <div className="stat-card">
@@ -105,7 +103,7 @@ export default function PersonalInfo() {
         <div className="progress-section">
           <div className="progress-item">
             <div className="progress-header">
-              <span className="progress-label">Progression des tâches</span>
+              <span className="progress-label">Taux d'absence</span>
               <span className="progress-percentage">{completionRate}%</span>
             </div>
             <div className="progress-bar">
@@ -118,25 +116,25 @@ export default function PersonalInfo() {
 
           <div className="progress-item">
             <div className="progress-header">
-              <span className="progress-label">Efficacité</span>
-              <span className="progress-percentage">{personalStats.efficiency}%</span>
+              <span className="progress-label">Taux de retard</span>
+              <span className="progress-percentage">{personalStats.delayRate}%</span>
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill efficiency"
-                style={{ width: `${personalStats.efficiency}%` }}
+                style={{ width: `${personalStats.delayRate}%` }}
               ></div>
             </div>
           </div>
         </div>
 
-        <div className="weekly-summary">
+        {/* <div className="weekly-summary">
           <h4 className="summary-title">Résumé hebdomadaire</h4>
           <div className="summary-stat">
             <span>Objectif: {personalStats.weeklyGoal}h</span>
             <span>Réalisé: {personalStats.hoursWorked * 5}h</span>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

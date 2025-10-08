@@ -80,7 +80,7 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 24px;
-  width: 66vw;
+  width: 74%;
 }
 
 .card-title {
@@ -271,15 +271,15 @@ body {
 
 /* Panneau des statistiques */
 .stats-panel {
-  margin-left: 250px; /* Pour compenser la sidebar */
+  margin-left: 15%; /* Pour compenser la sidebar */
   position: fixed;
   bottom: 0;
   left: 0; /* Commence après la sidebar */
-  right: 0;
-  width: 66vw;
+  width: 62.9%;
   background: white;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   border-top: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0;
   z-index: 999;
   transition: transform 0.3s ease;
   max-height: 50vh;
@@ -464,8 +464,7 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
   color: white;
-  width: 80%;
-  max-width: 800px; /* Limite la largeur maximale */
+  width: 98%;
 }
 
 .team-name-single {

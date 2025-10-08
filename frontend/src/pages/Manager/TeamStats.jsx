@@ -87,18 +87,6 @@ export default function TeamStats() {
 
         {/* Métriques principales */}
         <div className="metrics-grid">
-          {/* Performance */}
-          <div className="metric-card">
-            <div className="metric-header">
-              <h4>Performance</h4>
-              <span className="metric-value">{teamData.performance}%</span>
-            </div>
-            <ProgressBar 
-              percentage={teamData.performance}
-              color={performanceColor}
-              label="Efficacité générale"
-            />
-          </div>
 
           {/* Taux d'absence */}
           <div className="metric-card">
@@ -114,15 +102,21 @@ export default function TeamStats() {
           {/* Tâches */}
           <div className="metric-card">
             <div className="metric-header">
-              <h4>Tâches réalisées</h4>
+              <h4>Nombre d'heures travaillées</h4>
+            <span className="metric-value">{teamData.performance}h</span>
+            </div>
+            <div className="metric-header">
+              <h4>quantité de retard</h4>
               <span className="metric-value">{teamData.completedTasks}/{teamData.tasks}</span>
             </div>
             <ProgressBar 
               percentage={taskCompletionRate}
               color="#17a2b8"
-              label="Taux de completion"
-            />
+              label="Taux de retard"
+              />
+
           </div>
+
         </div>
     </>
   );

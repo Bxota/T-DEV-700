@@ -11,26 +11,6 @@ export default function Manager() {
     setShowStats(!showStats);
   };
 
-  // Calcule la position de la ligne d'heure actuelle
-  const getCurrentTimePosition = () => {
-    const now = currentTime;
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    
-    // Vérifie si l'heure actuelle est dans la plage affichée (8h-22h pour 15 colonnes)
-    if (currentHour < 8 || currentHour >= 23) {
-      return null;
-    }
-
-    // Calcule le pourcentage de position
-    const startHour = 8;
-    const totalMinutesFromStart = (currentHour - startHour) * 60 + currentMinutes;
-    const totalMinutesInSchedule = 15 * 60; // 15 heures * 60 minutes
-    const position = (totalMinutesFromStart / totalMinutesInSchedule) * 100;
-
-    return Math.min(Math.max(position, 0), 100);
-  };
-
   return (
     <div className="manager-container">
       

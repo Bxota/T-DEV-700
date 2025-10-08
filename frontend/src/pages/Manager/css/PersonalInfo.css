@@ -2,7 +2,7 @@
 .personal-info-sidebar {
   position: fixed;
   right: 0vw;
-  width: 19vw;
+  width: 22%;
   height: 100%;
   background: white;
   border-radius: 12px;
@@ -82,7 +82,7 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 12px 32px;
   background: white;
   border-radius: 6px;
 }
@@ -234,18 +234,4 @@
   justify-content: space-between;
   font-size: 0.85rem;
   color: #6c757d;
-}
-
-/* Responsive pour la sidebar */
-@media (max-width: 1400px) {
-  .personal-info-sidebar {
-    width: 300px;
-    right: 10px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .personal-info-sidebar {
-    display: none; /* Masque la sidebar sur les écrans moyens */
-  }
 }

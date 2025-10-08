@@ -4,7 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 export default function Planning() {
   // Changez le nombre ici pour avoir plus de colonnes
-  const hours = Array.from({ length: 15 }, (_, i) => 8 + i); // 15 colonnes au lieu de 11
+  const hours = Array.from({ length: 15 }, (_, i) => 7 + i); // 15 colonnes au lieu de 11
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -30,7 +30,7 @@ export default function Planning() {
     }
 
     // Calcule le pourcentage de position
-    const startHour = 8;
+    const startHour = 6; // 7h moins 1 pour le début de la plage
     const totalMinutesFromStart = (currentHour - startHour) * 60 + currentMinutes;
     const totalMinutesInSchedule = 15 * 60; // 15 heures * 60 minutes
     const position = (totalMinutesFromStart / totalMinutesInSchedule) * 100;

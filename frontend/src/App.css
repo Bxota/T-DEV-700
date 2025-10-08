@@ -25,8 +25,7 @@ body {
   flex: 1;
   background-color: #f8f9fa;
   min-height: 100vh;
-  width: calc(100vw - 250px); /* Largeur totale moins la sidebar */
-  margin-left: 250px; /* Marge pour la sidebar */
+  margin-left: 15%; /* Marge pour la sidebar */
   transition: margin-left 0.3s ease, width 0.3s ease;
   position: relative;
 }
@@ -56,37 +55,4 @@ body {
 .page-description {
   color: #6c757d;
   font-size: 1.1rem;
-}
-
-/* Styles responsive */
-@media (max-width: 1024px) {
-  .main-content {
-    margin-left: 70px; /* Sidebar réduite */
-    width: calc(100vw - 70px);
-  }
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0; /* Pas de sidebar sur mobile */
-    width: 100vw;
-  }
-  
-  .page-container {
-    padding: 20px;
-  }
-  
-  .page-title {
-    font-size: 2rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-container {
-    padding: 15px;
-  }
-  
-  .page-title {
-    font-size: 1.7rem;
-  }
 }
