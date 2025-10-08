@@ -8,24 +8,22 @@ const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); // mock simple
+  const [password, setPassword] = useState(''); 
   const [error, setError] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Pour l’instant : création d’un utilisateur factice
     try {
       const nameFromEmail = email.split('@')[0];
       const fakeUser = {
         id: Date.now().toString(),
         email,
         name: nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1),
-        // avatarUrl: 'https://exemple.com/monavatar.png' // optionnel
       };
 
-      setUser(fakeUser);   // écrit dans le UserContext + localStorage
-      navigate('/');       // redirige vers la page d’accueil
+      setUser(fakeUser);   
+      navigate('/');       
     } catch (err) {
       setError('Une erreur est survenue');
     }
