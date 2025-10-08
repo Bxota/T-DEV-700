@@ -11,6 +11,7 @@ from api.teams.service import TeamManager
 from api.users.service import UserManager
 from api.shifts.service import ShiftManager
 from db_manager.serializers import TeamSerializer
+from db_manager.repositories.team_repository import TeamRepository
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
