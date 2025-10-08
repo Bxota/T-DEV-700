@@ -21,6 +21,11 @@ services:
       - "${PORT_DB}:${PORT_DB}"
 
   backend:
+    environment:
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      DJANGO_SUPERUSER_FIRST_NAME: ${DJANGO_SUPERUSER_FIRST_NAME}
+      DJANGO_SUPERUSER_LAST_NAME: ${DJANGO_SUPERUSER_LAST_NAME}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -31,9 +36,6 @@ services:
       - ./backend/.env.dev
     volumes:
       - ./backend:/app:rw
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:${PORT_BACK}"
     depends_on:
       db:
         condition: service_healthy
