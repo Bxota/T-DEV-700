@@ -8,22 +8,22 @@ const Sidebar = () => {
   const menuItems = [
     {
       path: '/dashboard',
-      name: 'Dashboard',
+      name: 'Tableau de bord',
       icon: '📊'
     },
     {
       path: '/team',
-      name: 'Team',
+      name: 'Équipe',
       icon: '👥'
     },
     {
       path: '/manager',
-      name: 'Manager',
+      name: 'Gestionnaire',
       icon: '👔'
     },
     {
       path: '/profile',
-      name: 'Profile',
+      name: 'Profil',
       icon: '👤'
     }
   ];

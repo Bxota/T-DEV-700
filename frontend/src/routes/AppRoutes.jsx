@@ -9,7 +9,7 @@ import Login from '../pages/Login/Login'
 const AppRoutes = () => {
   return (
     <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/manager" element={<Manager />} />
       <Route path="/profile" element={<Profile />} />
