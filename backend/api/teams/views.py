@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from db_manager.repositories.team_repository import TeamRepository
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
@@ -58,7 +59,8 @@ class TeamCollection(APIView):
         return super().get_permissions()
 
     def get(self, request):
-        return Response([])
+        teams = TeamRepository.get_teams()
+        return Response(teams)
 
     def post(self, request):
         return Response({"ok": True, "user": request.user.username})
@@ -99,10 +101,16 @@ class TeamDetail(APIView):
         return [IsAuthenticated()]
 
     def get(self, request, team_id):
-        return Response({"team_id": team_id})
+        team = TeamRepository.get_team_by_id(team_id)
+        if team is None:
+            return Response({"detail": "Not found."}, status=404)
+        return Response({"team_id": team.id, "name": team.name})
 
     def put(self, request, team_id):
         return Response({"updated": True, "team_id": team_id})
 
     def delete(self, request, team_id):
-        return Response({"deleted": True, "team_id": team_id})
+        success = TeamRepository.delete_team(team_id)
+        if not success:
+            return Response({"detail": "Not found."}, status=404)
+        return Response(status=204)
