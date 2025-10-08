@@ -11,8 +11,8 @@ from api.permissions import HasTeamTagPermission
 
 @extend_schema_view(
     get=extend_schema(
-        operation_id="user_reports_retrieve",
-        tags=["Reports"],
+        operation_id="user_reports",
+        tags=["Users"],
         summary="Récupérer un rapport détaillé sur un employé",
         description="Retourne le rapport détaillé sur un employé",
         responses={200: None},
@@ -26,6 +26,23 @@ def get_user_reports():
     - calculer le taux de retard de l'employé
     - voir son nombre d'absences
     - indiquer le nombre d'heures travaillées
+    """
+    return Response({})
+
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="user_clocks",
+        tags=["Users"],
+        summary="Get a summary of the arrivals and departures of an employee",
+        description="Get a summary of the arrivals and departures of an employee",
+        responses={200: None},
+    ),
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_clocks_summary():
+    """
+    Renvoie les heures de départs et d'arrivées de l'employé
     """
     return Response({})
 

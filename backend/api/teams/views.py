@@ -13,7 +13,7 @@ from api.permissions import HasTeamTagPermission
 @extend_schema_view(
     get=extend_schema(
         operation_id="team_reports_retrieve",
-        tags=["Reports"],
+        tags=["Teams"],
         summary="Récupérer un rapport détaillé sur une équipe",
         description="Retourne le rapport détaillé sur une équipe",
         responses={200: None},
