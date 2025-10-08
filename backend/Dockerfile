@@ -29,7 +29,7 @@ RUN python -m pip install --upgrade pip && \
     fi
 
 EXPOSE ${PORT_BACK}
-CMD ["bash", "-lc", "python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT_BACK}"]
+CMD ["bash", "-lc", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:${PORT_BACK}"]
 
 
 # ---------- runner (later) ----------
