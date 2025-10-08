@@ -22,19 +22,6 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-.profile-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0 auto 16px auto;
-}
 
 .full-name {
   font-size: 1.4rem;
