@@ -15,6 +15,8 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
+    networks:
+      - internal
     ports:
       - "${PORT_DB}:${PORT_DB}"
 
@@ -35,8 +37,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "${PORT_BACK}:${PORT_BACK}"
+    networks:
+      - internal
+#    ports:
+#      - "${PORT_BACK}:${PORT_BACK}"
 
   frontend:
     build:
@@ -51,9 +55,44 @@ services:
     volumes:
       - ./frontend:/app:rw
       - /app/node_modules
-    ports:
-      - "${PORT_FRONT}:${PORT_FRONT}"
+    networks:
+      - internal
+#    ports:
+#      - "${PORT_FRONT}:${PORT_FRONT}"
     command: ["npm","run","dev","--","--host","0.0.0.0","--port","${PORT_FRONT}"]
+
+  reverseproxy:
+    build:
+      context: ./reverseProxy
+      dockerfile: Dockerfile
+      args:
+        NGX_VERSION: ${NGX_VERSION}
+    environment:
+      PORT_FRONT: ${PORT_FRONT}
+      PORT_BACK: ${PORT_BACK}
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost/healthz || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    networks:
+      - internal
+      - edge
+    ports:
+      - "${PORT_NGX}:80"
 
 volumes:
   pgdata:
+
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    driver: bridge
