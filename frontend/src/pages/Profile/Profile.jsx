@@ -1,47 +1,113 @@
-import React, { useState } from 'react';
+// src/Profile.jsx
+import React, { useEffect, useState } from 'react';
+import { BASE, getAccess, logout } from '../../api/auth';
 import './Profile.css';
 
 const Profile = () => {
   const [user, setUser] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    role: 'Developer',
-    department: 'IT',
-    phone: '+33 1 23 45 67 89',
-    bio: 'Développeur passionné avec 5 ans d\'expérience en React et Node.js.'
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    department: '',
+    phone: ''
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+
+  // Affiche une valeur ou le nom du label si vide/null
+  const displayValue = (value, fallbackLabel) =>
+    (value === null || value === undefined || value === '') ? fallbackLabel : value;
+
+  // ⬇️ Charger les infos utilisateur via /whoami
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = getAccess();
+        if (!token) { logout(); return; } // pas de token -> déconnexion
+
+        const res = await fetch(`${BASE}/token/whoami/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (res.status === 401) { logout(); return; } // token expiré -> déconnexion
+        if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
+
+        const data = await res.json();
+        const u = data?.user ?? {};
+
+        if (!cancelled) {
+          setUser({
+            firstName: u.first_name || '',
+            lastName:  u.last_name  || '',
+            email:     u.email       || '',
+            role:      u.role        || '',
+            department:u.team        || '',
+            phone:     u.phone_number|| ''
+          });
+        }
+      } catch (e) {
+        if (!cancelled) setError(e.message || 'Erreur de chargement');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUser(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setUser(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = () => {
     setIsEditing(false);
-    // Ici vous pourriez envoyer les données à votre API
     console.log('Profil sauvegardé:', user);
+    // TODO: PUT vers ton endpoint d’update si besoin
   };
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <h1 className="page-title">Mon Profil</h1>
+          <p className="page-description">Chargement…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Mon Profil</h1>
         <p className="page-description">Gérez vos informations personnelles et préférences</p>
+        {error && <p className="error-banner">⚠️ {error}</p>}
       </div>
 
       <div className="profile-content">
         <div className="profile-card">
           <div className="profile-avatar">
             <div className="avatar-circle">
-              {user.firstName[0]}{user.lastName[0]}
+              {displayValue(user.firstName?.[0], 'U')}
+              {displayValue(user.lastName?.[0], 'N')}
             </div>
-            <button className="change-avatar-btn">Changer la photo</button>
+            <button className="change-avatar-btn" disabled={!isEditing}>Changer la photo</button>
+
+            {/* Bouton de déconnexion direct */}
+            <button className="cancel-btn" style={{ marginTop: 12 }} onClick={() => logout()}>
+              Se déconnecter
+            </button>
           </div>
 
           <div className="profile-info">
@@ -82,7 +148,7 @@ const Profile = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{user.firstName}</span>
+                  <span>{displayValue(user.firstName, 'Prénom')}</span>
                 )}
               </div>
 
@@ -96,7 +162,7 @@ const Profile = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{user.lastName}</span>
+                  <span>{displayValue(user.lastName, 'Nom')}</span>
                 )}
               </div>
 
@@ -110,7 +176,7 @@ const Profile = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{user.email}</span>
+                  <span>{displayValue(user.email, 'Email')}</span>
                 )}
               </div>
 
@@ -124,7 +190,7 @@ const Profile = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{user.phone}</span>
+                  <span>{displayValue(user.phone, 'Téléphone')}</span>
                 )}
               </div>
 
@@ -142,7 +208,7 @@ const Profile = () => {
                     <option value="Admin">Admin</option>
                   </select>
                 ) : (
-                  <span>{user.role}</span>
+                  <span>{displayValue(user.role, 'Rôle')}</span>
                 )}
               </div>
 
@@ -156,21 +222,7 @@ const Profile = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{user.department}</span>
-                )}
-              </div>
-
-              <div className="info-group full-width">
-                <label>Biographie</label>
-                {isEditing ? (
-                  <textarea
-                    name="bio"
-                    value={user.bio}
-                    onChange={handleInputChange}
-                    rows={4}
-                  />
-                ) : (
-                  <span>{user.bio}</span>
+                  <span>{displayValue(user.department, 'Département')}</span>
                 )}
               </div>
             </div>
