@@ -18,3 +18,10 @@ sqlparse==0.5.3
 typing_extensions==4.15.0
 uritemplate==4.2.0
 dj-database-url
+pytest==8.3.3
+pytest-django==4.9.0
+pytest-cov
+factory_boy==3.3.1
+model_bakery==1.18.0
+coverage==7.6.1
+pytest-html==4.1.1

@@ -3,6 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
+from api.teams.service import TeamManager
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
@@ -21,7 +23,7 @@ from api.permissions import HasTeamTagPermission
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
-def get_team_reports():
+def get_team_reports(request, team_id):
     """
     Rapport possibles : 
     - calculer le taux de retard de l'équipe
@@ -44,6 +46,7 @@ def get_team_reports():
         summary="Créer une équipe",
         tags=["Teams"],
         description="Crée une nouvelle équipe et la retourne.",
+        request={"application/json": {"name": "string"}},
         responses={201: None},
     ),
 )
@@ -58,10 +61,28 @@ class TeamCollection(APIView):
         return super().get_permissions()
 
     def get(self, request):
-        return Response([])
+        teams = TeamManager.list_teams()
+        if isinstance(teams, dict) and "error" in teams:
+            return Response(teams, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"teams": teams})
 
     def post(self, request):
-        return Response({"ok": True, "user": request.user.username})
+        name = request.data.get("name")
+        if not name:
+            return Response(
+                {"error": "Name field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        team = TeamManager.create_team(name)
+
+        if isinstance(team, dict) and "error" in team:
+            return Response(team, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"is_created": True, "name": team.name},
+            status=status.HTTP_201_CREATED
+        )
 
 
 @extend_schema_view(
@@ -78,6 +99,7 @@ class TeamCollection(APIView):
         summary="Mettre à jour une équipe",
         tags=["Teams"],
         description="Mise à jour partielle d'une équipe.",
+        request={"application/json": {"name": "string"}},
         responses={200: None},
     ),
     delete=extend_schema(
@@ -99,10 +121,33 @@ class TeamDetail(APIView):
         return [IsAuthenticated()]
 
     def get(self, request, team_id):
-        return Response({"team_id": team_id})
+        team = TeamManager.get_team_by_id(team_id)
+        if isinstance(team, dict) and "error" in team:
+            return Response(team, status=status.HTTP_404_NOT_FOUND)
+        return Response({"id": team.id, "name": team.name})
 
     def put(self, request, team_id):
-        return Response({"updated": True, "team_id": team_id})
+        name = request.data.get("name")
+        if not name:
+            return Response(
+                {"error": "Name field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        team = TeamManager.update_team(team_id, name)
+
+        if isinstance(team, dict) and "error" in team:
+            return Response(team, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"is_updated": True, "new_name": team.name},
+            status=status.HTTP_200_OK
+        )
 
     def delete(self, request, team_id):
-        return Response({"deleted": True, "team_id": team_id})
+        result = TeamManager.delete_team(team_id)
+
+        if isinstance(result, dict) and "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"is_deleted": True}, status=status.HTTP_200_OK)

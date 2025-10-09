@@ -83,6 +83,9 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 
     "AUTH_HEADER_TYPES": ("Bearer",),
+    
+    "VERIFY_EXP": True,
+    "LEEWAY": 0,
 }
 
 MIDDLEWARE = [

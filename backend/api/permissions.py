@@ -1,19 +1,21 @@
 from rest_framework.permissions import BasePermission
+from db_manager.models import Roles
 
 class HasTeamTagPermission(BasePermission):
-    """
-    Permission personnalisée :
-    - Requiert que l'utilisateur soit authentifié
-    """
-
     message = "Vous n'avez pas les permissions nécessaires pour gérer les équipes."
 
     def has_permission(self, request, view):
         user = request.user
-        if not user or not user.is_authenticated:
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        if not hasattr(user, "role"):
             return False
 
-        if hasattr(user, "role") and user.role == "manager":
-            return True
+        try:
+            manager_role = Roles.objects.get(name="manager")
+        except Roles.DoesNotExist:
+            return False
+        except Exception:
+            return False
 
-        return False
+        return user.role == manager_role
