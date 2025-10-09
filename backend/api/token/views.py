@@ -1,7 +1,9 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiTypes
 
@@ -13,6 +15,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
     responses={200: OpenApiTypes.OBJECT},
 )
 @api_view(["GET"])
+@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def whoami(request):
     jwt_payload = None
@@ -30,15 +33,15 @@ def whoami(request):
     return Response({
         "user": {
             "id": request.user.id,
-            "username": request.user.username,
-            "email": request.user.email,
+            "first_name": request.user.first_name or "",
+            "last_name": request.user.last_name or "",
+            "email": request.user.email or "",
+            "phone_number": getattr(request.user, "phone_number", None),
+            "role": getattr(request.user.role, "name", None),
+            "team": getattr(request.user.team, "name", None),
             "is_authenticated": request.user.is_authenticated,
-        },
-        "jwt": jwt_payload,
-        "method": request.method,
-        "path": request.path,
-        "query_params": dict(request.query_params),
-        "ip": request.META.get("REMOTE_ADDR"),
+            "is_active": request.user.is_active,
+        }
     })
 
 @extend_schema(
