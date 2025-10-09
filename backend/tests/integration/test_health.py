@@ -25,7 +25,7 @@ def test_health_authenticated_ok(api_client, auth_headers):
 
 
 @pytest.mark.django_db
-def test_health_manager_requires_permission(api_client, auth_headers):
+def test_health_manager_requires_permission(api_client, auth_headers, manager_role):
     # Authentifié mais sans la permission custom -> 403
     r = api_client.get(MANAGER, **auth_headers)
     assert r.status_code == 403
