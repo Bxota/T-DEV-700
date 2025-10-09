@@ -56,9 +56,9 @@ class TeamCollection(APIView):
 
     def get_permissions(self):
         if self.request.method == "GET":
-            return [IsAuthenticated()]  # ex: lecture simple
+            return [IsAuthenticated()]
         if self.request.method == "POST":
-            return [IsAuthenticated(), HasTeamTagPermission()]  # ex: création -> tag requis
+            return [IsAuthenticated(), HasTeamTagPermission()]
         return super().get_permissions()
 
     def get(self, request):
