@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from db_manager.models import Roles
 
 class HasTeamTagPermission(BasePermission):
     """
@@ -13,7 +14,7 @@ class HasTeamTagPermission(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if hasattr(user, "role") and user.role == "manager":
+        if hasattr(user, "role") and user.role == Roles.objects.get(name='manager'):
             return True
 
         return False
