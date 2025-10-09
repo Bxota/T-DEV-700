@@ -58,7 +58,7 @@ class Roles(models.Model):
 
 class Users(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100,)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     team = models.ForeignKey(Teams, on_delete=models.SET_NULL, null=True)
