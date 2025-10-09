@@ -29,7 +29,7 @@ def health(request):
 @permission_classes([IsAuthenticated])
 def health_authenticated(request):
     user = request.user
-    return Response({"message": f"Hello {user.username}, you are authenticated!"})
+    return Response({"message": f"Hello {user.first_name}, you are authenticated!"})
 
 @extend_schema(
     operation_id="health",
@@ -42,7 +42,7 @@ def health_authenticated(request):
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
 def health_manager(request):
     user = request.user
-    return Response({"message": f"Hello {user.username}, you are a manager!"})
+    return Response({"message": f"Hello {user.first_name}, you are a manager!"})
 
 @extend_schema(
     operation_id="schema",

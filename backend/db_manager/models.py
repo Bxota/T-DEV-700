@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.conf import settings
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -55,7 +57,11 @@ class Users(AbstractBaseUser, PermissionsMixin):
 
 class Shifts(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, null=False, default=Users())
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="shifts",
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     real_start_time = models.DateTimeField(blank=True, null=True)
