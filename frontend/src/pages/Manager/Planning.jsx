@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 export default function Planning() {
   // Changez le nombre ici pour avoir plus de colonnes
   const hours = Array.from({ length: 15 }, (_, i) => 7 + i); // 15 colonnes au lieu de 11
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Met à jour l'heure actuelle chaque minute
@@ -41,29 +39,7 @@ export default function Planning() {
   const timeLinePosition = getCurrentTimePosition();
 
   return (
-    <div className="manager-card">
-      <select className="team-selector">
-        <option value="">Sélectionnez une équipe</option>
-        <option value="equipe1">Equipe 1</option>
-        <option value="equipe2">Equipe 2</option>
-        <option value="equipe3">Equipe 3</option>
-      </select>
-      <br/>
-      
-      <button
-        className="add-member-btn"
-        onClick={() => window.location.href = "/team"}
-      >
-        + Ajouter un membre
-      </button>
-      
-      <DatePicker
-        selected={selectedDate}
-        onChange={date => setSelectedDate(date)}
-        dateFormat="dd/MM/yyyy"
-        className="datepicker-input"
-      />
-
+    <>
       <div className="scheduler-container">
         <div className="scheduler-hour">
           {hours.map(hour => (
@@ -92,6 +68,6 @@ export default function Planning() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -37,7 +37,7 @@ body {
 
 
 .team-selector {
-    width: 20%;
+    width: 24%;
     margin: 8px;
     padding: 8px 12px;
     border: 1px solid #ced4da;
@@ -82,6 +82,11 @@ body {
   margin-bottom: 24px;
   width: 74%;
 }
+
+.planning-section {
+  margin: 0 auto;
+  width: 100%;
+} 
 
 .card-title {
   font-size: 1.25rem;
@@ -664,7 +669,7 @@ body {
   display: flex;
   background: #f8f9fa;
   position: relative;
-  height: 82vh;
+  height: 86vh;
   overflow: auto;
   width: 100%;
 }
