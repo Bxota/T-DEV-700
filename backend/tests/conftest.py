@@ -9,7 +9,16 @@ from datetime import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 
+from db_manager.models import Roles
+
 User = get_user_model()
+
+@pytest.fixture
+def manager_role(db):
+    # S'assure que le rôle 'manager' existe pour que la permission ne lève pas DoesNotExist
+    Roles.objects.get_or_create(name="manager")
+    return True
+
 
 @pytest.fixture
 def api_client():
@@ -17,11 +26,13 @@ def api_client():
 
 @pytest.fixture
 def user():
-    return baker.make(User, email="alice@example.com", is_active=True)
+    role = baker.make("db_manager.Roles", name="employee")
+    return baker.make(User, email="alice@example.com", is_active=True, role=role)
 
 @pytest.fixture
 def manager():
-    return baker.make(User, email="manager@example.com", is_active=True, is_staff=True)
+    role = baker.make("db_manager.Roles", name="manager")
+    return baker.make(User, email="manager@example.com", is_active=True, is_staff=True, role=role)
 
 @pytest.fixture
 def auth_headers(user):
@@ -46,7 +57,7 @@ def expired_headers(user, settings):
 # Exemples de factories rapides
 @pytest.fixture
 def team():
-    return baker.make("teams.Team", name="Ops")
+    return baker.make("db_manager.Teams", name="Ops")
 
 @pytest.fixture
 def user_in_team(user, team):

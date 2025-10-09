@@ -23,7 +23,7 @@ from api.permissions import HasTeamTagPermission
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
-def get_team_reports():
+def get_team_reports(request, team_id):
     """
     Rapport possibles : 
     - calculer le taux de retard de l'équipe
