@@ -18,18 +18,6 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def whoami(request):
-    jwt_payload = None
-
-    if request.auth is not None:
-        # SimpleJWT >= 5.x : l'objet AccessToken expose un dict via .payload
-        if hasattr(request.auth, "payload"):
-            jwt_payload = request.auth.payload
-        else:
-            try:
-                jwt_payload = dict(request.auth)
-            except Exception:
-                jwt_payload = {"raw": str(request.auth)}
-
     return Response({
         "user": {
             "id": request.user.id,
