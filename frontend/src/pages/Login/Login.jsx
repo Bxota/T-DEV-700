@@ -1,31 +1,43 @@
-import React, { useState } from 'react';
-import './Login.css';
-import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../context/UserContext';
+import React, { useState } from "react";
+import "./Login.css";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../../context/UserContext";
+import { login } from "../../api/auth";           // ⬅️ whoami supprimé
 
-const Login = () => {
+export default function Login() {
   const { setUser } = useUser();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); 
-  const [error, setError] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");   // string only
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+    setLoading(true);
 
     try {
-      const nameFromEmail = email.split('@')[0];
-      const fakeUser = {
-        id: Date.now().toString(),
-        email,
-        name: nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1),
+      const { claims } = await login(email.trim(), password);
+
+      // construit un user sans appeler whoami
+      const user = {
+        id: claims?.user_id ?? claims?.sub ?? null,
+        email: claims?.email ?? email.trim(),
+        username: claims?.username ?? null,
       };
 
-      setUser(fakeUser);   
-      navigate('/');       
+      setUser(user);
+      navigate("/");
     } catch (err) {
-      setError('Une erreur est survenue');
+      // 🔒 Toujours une string -> évite "Objects are not valid as a React child"
+      const msg =
+        err?.message ||
+        "Impossible de contacter le serveur.";
+      setErrorMsg(String(msg));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,7 +54,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
@@ -58,9 +70,15 @@ const Login = () => {
             />
           </div>
 
-          {error && <p style={{ color: 'crimson', marginTop: 8 }}>{error}</p>}
+          {errorMsg ? (
+            <p style={{ color: "crimson", marginTop: 8 }}>
+              {errorMsg}
+            </p>
+          ) : null}
 
-          <button type="submit" className="login-button">Se connecter</button>
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Connexion..." : "Se connecter"}
+          </button>
         </form>
 
         <p className="register-text">
@@ -69,6 +87,4 @@ const Login = () => {
       </div>
     </div>
   );
-};
-
-export default Login;
+}
