@@ -25,7 +25,6 @@ jobs:
       - name: Fail if required vars/secrets are missing
         run: |
           set -e
-          # root .env (vars)
           [ -n "${{ vars.PROJECT_NAME }}" ] || (echo "Missing vars.PROJECT_NAME" && exit 1)
           [ -n "${{ vars.ENV }}" ] || (echo "Missing vars.ENV" && exit 1)
           [ -n "${{ vars.PYTHON_VERSION }}" ] || (echo "Missing vars.PYTHON_VERSION" && exit 1)
@@ -37,12 +36,9 @@ jobs:
           [ -n "${{ vars.PORT_FRONT }}" ] || (echo "Missing vars.PORT_FRONT" && exit 1)
           [ -n "${{ vars.PORT_NGX }}" ] || (echo "Missing vars.PORT_NGX" && exit 1)
           [ -n "${{ vars.POSTGRES_DB }}" ] || (echo "Missing vars.POSTGRES_DB" && exit 1)
-          # secrets
           [ -n "${{ secrets.POSTGRES_USER }}" ] || (echo "Missing secrets.POSTGRES_USER" && exit 1)
           [ -n "${{ secrets.POSTGRES_PASSWORD }}" ] || (echo "Missing secrets.POSTGRES_PASSWORD" && exit 1)
-          # optional but recommended as secret
           [ -n "${{ secrets.DJANGO_SECRET_KEY }}" ] || (echo "Missing secrets.DJANGO_SECRET_KEY" && exit 1)
-          # frontend env (vars)
           [ -n "${{ vars.VITE_API_BASE }}" ] || (echo "Missing vars.VITE_API_BASE" && exit 1)
           [ -n "${{ vars.VITE_APP_ENV }}" ] || (echo "Missing vars.VITE_APP_ENV" && exit 1)
 
@@ -90,15 +86,16 @@ jobs:
           set -e
           docker compose -f docker-compose.yml up -d db
           echo "Waiting for Postgres to become healthy..."
-          ready=0
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
             if docker compose -f docker-compose.yml exec -T db pg_isready -U "${{ secrets.POSTGRES_USER }}" -d "${{ vars.POSTGRES_DB }}" -h localhost; then
-              ready=1
+              echo "Postgres is ready."
               break
             fi
             sleep 2
+            if [ "$i" = "30" ]; then
+              echo "Postgres not ready in time"; exit 1
+            fi
           done
-          [ "$ready" -eq 1 ] || (echo "Postgres not ready in time" && exit 1)
 
       - name: Start backend (dev)
         run: docker compose -f docker-compose.yml up -d backend
@@ -113,58 +110,62 @@ jobs:
               --cov-report=html:/app/htmlcov
 
       - name: Collect test reports from container
+        if: always()
         run: |
           mkdir -p backend
           docker compose -f docker-compose.yml cp backend:/app/junit.xml backend/junit.xml || true
           docker compose -f docker-compose.yml cp backend:/app/coverage.xml backend/coverage.xml || true
           docker compose -f docker-compose.yml cp backend:/app/htmlcov backend/htmlcov || true
 
-      - name: Write coverage_summary.py
-        shell: bash
+      - name: Publish test results to Checks
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: backend/junit.xml
+
+      - name: Coverage summary in Checks
+        if: always()
         run: |
-          mkdir -p .ci
-          cat > .ci/coverage_summary.py <<'PY'
-  import os
-  import xml.etree.ElementTree as ET
-  
-  PATH = "backend/coverage.xml"
+          if [ -f backend/coverage.xml ]; then
+            rate=$(grep -oP 'line-rate="\K[0-9.]+' backend/coverage.xml | head -n1 || true)
+            if [ -n "$rate" ]; then
+              percent=$(awk -v r="$rate" 'BEGIN { printf("%.2f%%", r*100) }')
+            else
+              percent="N/A"
+            fi
+          else
+            percent="N/A"
+          fi
+          echo "Coverage total: $percent"
+          {
+            echo "# Resume couverture"
+            echo
+            echo "**Couverture globale** : **$percent**"
+            echo
+            echo "- Source : backend/coverage.xml"
+            echo "- Rapport HTML : artifact coverage -> htmlcov/index.html"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-def compute_percent(path: str) -> str:
-                            try:
-                              root = ET.parse(path).getroot()
-                              line_rate = root.attrib.get("line-rate")
-                              if line_rate is None:
-                                metrics = root.find(".//{*}coverage") or root.find(".//coverage")
-                                line_rate = metrics.attrib.get("line-rate") if metrics is not None else None
-                              if line_rate is None:
-                                return "N/A"
-                              return f"{round(float(line_rate) * 100, 2)}%"
-                            except Exception as e:
-                              print(f"::warning::Erreur parsing coverage.xml: {e}")
-        return "N/A"
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit
+          path: backend/junit.xml
 
-  percent = compute_percent(PATH)
-print(f"Coverage total: {percent}")
+      - name: Upload coverage (XML + HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            backend/coverage.xml
+            backend/htmlcov
 
-summary = (
-    "# ✅ Résumé couverture\n\n"
-                          f"**Couverture globale** : **{percent}**\n\n"
-                          "- Fichier source : backend/coverage.xml\n"
-                          "- Rapport HTML : artifact coverage → htmlcov/index.html\n"
-  )
-
-with open("/tmp/summary.md", "w", encoding="utf-8") as f:
-  f.write(summary)
-  
-  print(f"::notice title=Coverage::{percent} total")
-
-if "GITHUB_OUTPUT" in os.environ:
-  with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-    f.write(f"coverage={percent}\n")
-  PY
-
-- name: Summarize coverage in Checks
-  shell: bash
-  run: |
-    python .ci/coverage_summary.py
-    cat /tmp/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Teardown and secure cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.yml down -v
+          shred -u .env || true
+          shred -u backend/.env.dev || true
+          shred -u frontend/.env.dev || true
