@@ -68,4 +68,27 @@ class ShiftRepository:
             return {"error": "Shift not found."}
         except Exception as e:
             return {"error": str(e)}
-    
+        
+    @staticmethod
+    def check_in(shift_id, start_time):
+        try:
+            shift = Shifts.objects.get(id=shift_id)
+            shift.real_start_time = start_time
+            shift.save()
+            return shift
+        except Shifts.DoesNotExist:
+            return {"error": "Shift not found."}
+        except Exception as e:
+            return {"error": str(e)}
+        
+    @staticmethod
+    def check_out(shift_id, end_time):
+        try:
+            shift = Shifts.objects.get(id=shift_id)
+            shift.real_end_time = end_time
+            shift.save()
+            return shift
+        except Shifts.DoesNotExist:
+            return {"error": "Shift not found."}
+        except Exception as e:
+            return {"error": str(e)}   

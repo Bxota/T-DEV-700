@@ -82,7 +82,7 @@ class TeamCollection(APIView):
             return Response(team, status=status.HTTP_400_BAD_REQUEST)
 
         data = TeamSerializer(team).data
-        return Response({"team": data}, status=status.HTTP_200_OK)
+        return Response({"team": data}, status=status.HTTP_201_CREATED)
 
 @extend_schema_view(
     get=extend_schema(

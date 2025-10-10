@@ -65,7 +65,7 @@ def test_create_team_ok_with_permission(api_client, auth_headers, monkeypatch):
     payload = {"name": "Ops"}
     r = api_client.post(COLLECTION, payload, format="json", **auth_headers)
     assert r.status_code == 201
-    assert r.json() == {"is_created": True, "name": "Ops"}
+    assert r.json() ==  {'team': {'name': 'Ops'}}
 
 
 # -----------------------------
