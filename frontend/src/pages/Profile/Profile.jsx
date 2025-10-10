@@ -1,15 +1,36 @@
 // src/Profile.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BASE, getAccess, logout } from '../../api/auth';
 import './Profile.css';
+import { useUser } from '../../context/UserContext';
+
+// 1) Prénom+Nom -> 2 lettres
+// 2) Sinon email (avant @) -> 2 lettres
+// 3) Sinon "??"
+const computeInitials = ({ firstName, lastName, email }) => {
+  const a = (firstName || '').trim();
+  const b = (lastName  || '').trim();
+
+  if (a || b) {
+    const two = ((a[0] || '') + (b[0] || '')).toUpperCase();
+    if (two) return two;
+  }
+  if (email) {
+    const local = (email.split('@')[0] || '').replace(/[^a-z0-9]/gi, '');
+    const two = (local.slice(0, 2) || '').toUpperCase();
+    if (two) return two;
+  }
+  return '??';
+};
 
 const Profile = () => {
-  const [user, setUser] = useState({
+  const { setUser: setCtxUser } = useUser(); // ← pour synchroniser le menu/avatar
+  const [user, setLocalUser] = useState({
     firstName: '',
     lastName: '',
     email: '',
     role: '',
-    department: '',
+    team: '',
     phone: ''
   });
 
@@ -17,11 +38,19 @@ const Profile = () => {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
-  // Affiche une valeur ou le nom du label si vide/null
   const displayValue = (value, fallbackLabel) =>
     (value === null || value === undefined || value === '') ? fallbackLabel : value;
 
-  // ⬇️ Charger les infos utilisateur via /whoami
+  const initials = useMemo(
+    () => computeInitials({
+      firstName: user.firstName,
+      lastName : user.lastName,
+      email    : user.email
+    }),
+    [user.firstName, user.lastName, user.email]
+  );
+
+  // Charger les infos utilisateur via /whoami + MAJ du UserContext pour le menu
   useEffect(() => {
     let cancelled = false;
 
@@ -30,7 +59,7 @@ const Profile = () => {
       setError(null);
       try {
         const token = getAccess();
-        if (!token) { logout(); return; } // pas de token -> déconnexion
+        if (!token) { logout(); return; }
 
         const res = await fetch(`${BASE}/token/whoami/`, {
           headers: {
@@ -39,21 +68,36 @@ const Profile = () => {
           }
         });
 
-        if (res.status === 401) { logout(); return; } // token expiré -> déconnexion
+        if (res.status === 401) { logout(); return; }
         if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
 
         const data = await res.json();
         const u = data?.user ?? {};
 
+        const newUser = {
+          firstName: u.first_name || '',
+          lastName:  u.last_name  || '',
+          email:     u.email       || '',
+          role:      u.role        || '',
+          team:      u.team        || '',
+          phone:     u.phone_number|| ''
+        };
+
         if (!cancelled) {
-          setUser({
-            firstName: u.first_name || '',
-            lastName:  u.last_name  || '',
-            email:     u.email       || '',
-            role:      u.role        || '',
-            department:u.team        || '',
-            phone:     u.phone_number|| ''
-          });
+          // État local (page profil)
+          setLocalUser(newUser);
+          // Contexte global (menu/avatar connecté)
+          setCtxUser(prev => ({
+            ...prev,
+            id: u.id ?? prev?.id ?? null,
+            email: newUser.email,
+            username: prev?.username ?? null,
+            first_name: newUser.firstName,
+            last_name : newUser.lastName,
+            role: newUser.role ?? prev?.role ?? null,
+            team: newUser.team ?? prev?.team ?? null,
+            avatarUrl: prev?.avatarUrl ?? '' // au cas où tu ajoutes plus tard
+          }));
         }
       } catch (e) {
         if (!cancelled) setError(e.message || 'Erreur de chargement');
@@ -63,11 +107,11 @@ const Profile = () => {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [setCtxUser]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUser(prev => ({ ...prev, [name]: value }));
+    setLocalUser(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = () => {
@@ -98,13 +142,12 @@ const Profile = () => {
       <div className="profile-content">
         <div className="profile-card">
           <div className="profile-avatar">
-            <div className="avatar-circle">
-              {displayValue(user.firstName?.[0], 'U')}
-              {displayValue(user.lastName?.[0], 'N')}
-            </div>
-            <button className="change-avatar-btn" disabled={!isEditing}>Changer la photo</button>
+            <div className="avatar-circle">{initials}</div>
 
-            {/* Bouton de déconnexion direct */}
+            <button className="change-avatar-btn" disabled={!isEditing}>
+              Changer la photo
+            </button>
+
             <button className="cancel-btn" style={{ marginTop: 12 }} onClick={() => logout()}>
               Se déconnecter
             </button>
@@ -113,24 +156,15 @@ const Profile = () => {
           <div className="profile-info">
             <div className="profile-actions">
               {!isEditing ? (
-                <button 
-                  className="edit-btn"
-                  onClick={() => setIsEditing(true)}
-                >
+                <button className="edit-btn" onClick={() => setIsEditing(true)}>
                   ✏️ Modifier
                 </button>
               ) : (
                 <div className="edit-actions">
-                  <button 
-                    className="save-btn"
-                    onClick={handleSave}
-                  >
+                  <button className="save-btn" onClick={handleSave}>
                     ✅ Sauvegarder
                   </button>
-                  <button 
-                    className="cancel-btn"
-                    onClick={() => setIsEditing(false)}
-                  >
+                  <button className="cancel-btn" onClick={() => setIsEditing(false)}>
                     ❌ Annuler
                   </button>
                 </div>
@@ -213,16 +247,16 @@ const Profile = () => {
               </div>
 
               <div className="info-group">
-                <label>Département</label>
+                <label>Équipe</label>
                 {isEditing ? (
                   <input
                     type="text"
-                    name="department"
-                    value={user.department}
+                    name="team"
+                    value={user.team}
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{displayValue(user.department, 'Département')}</span>
+                  <span>{displayValue(user.team, 'Équipe')}</span>
                 )}
               </div>
             </div>

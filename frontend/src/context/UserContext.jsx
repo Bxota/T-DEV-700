@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 
 const UserContext = createContext(null);
 export const useUser = () => {
@@ -27,11 +34,51 @@ const isJwtValid = (token) => {
   }
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-
-  // Mets à true pour forcer un faux utilisateur (dev seulement)
   const DEBUG_FORCE_LOGIN = false;
+
+  // 👉 exposé publiquement pour forcer la MAJ après login
+  const refreshUser = useCallback(async () => {
+    const access = localStorage.getItem("access");
+    if (!access || !isJwtValid(access)) {
+      setUser(null);
+      return;
+    }
+    try {
+      const r = await fetch(`${API_BASE}/token/whoami/`, {
+        headers: { Authorization: `Bearer ${access}` },
+      });
+      if (r.ok) {
+        const data = await r.json();
+        const u = data?.user || {};
+        setUser((prev) => ({
+          ...prev,
+          id: u.id ?? prev?.id ?? null,
+          email: u.email ?? prev?.email ?? null,
+          username: prev?.username ?? null,
+          first_name: u.first_name ?? "",
+          last_name: u.last_name ?? "",
+          role: u.role ?? prev?.role ?? null,
+          team: u.team ?? prev?.team ?? null,
+          avatarUrl: prev?.avatarUrl ?? "",
+        }));
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    // fallback : au moins hydrater depuis le JWT
+    const claims = decodeJwt(access) || {};
+    setUser((prev) => ({
+      ...prev,
+      id: claims.user_id ?? claims.sub ?? prev?.id ?? null,
+      email: claims.email ?? prev?.email ?? null,
+      username: claims.username ?? prev?.username ?? null,
+    }));
+  }, []);
 
   useEffect(() => {
     const boot = async () => {
@@ -39,7 +86,11 @@ export const UserProvider = ({ children }) => {
         setUser({
           id: "123",
           email: "test@exemple.com",
-          name: "Jean Mupont",
+          username: "jean",
+          first_name: "Jean",
+          last_name: "Dupont",
+          role: "manager",
+          team: "Equipe A",
           avatarUrl: "",
         });
         return;
@@ -49,39 +100,56 @@ export const UserProvider = ({ children }) => {
       const access = localStorage.getItem("access");
       const refresh = localStorage.getItem("refresh");
 
-      // 1) access token OK → on restaure
+      // 1) access token OK → tente whoami (ou hydrate depuis storage/JWT)
       if (access && isJwtValid(access)) {
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-          return;
+        try {
+          const r = await fetch(`${API_BASE}/token/whoami/`, {
+            headers: { Authorization: `Bearer ${access}` },
+          });
+          if (r.ok) {
+            const data = await r.json();
+            const u = data?.user || {};
+            setUser({
+              ...(storedUser ? JSON.parse(storedUser) : {}),
+              id: u.id ?? null,
+              email: u.email ?? null,
+              username: u.username ?? null,
+              first_name: u.first_name ?? "",
+              last_name: u.last_name ?? "",
+              role: u.role ?? null,
+              team: u.team ?? null,
+              avatarUrl: "",
+            });
+            return;
+          }
+        } catch {
+          // ignore
         }
-        // pas d'user stocké ? on le reconstruit depuis le JWT
+
         const claims = decodeJwt(access) || {};
-        setUser({
-          id: claims.user_id ?? claims.sub ?? null,
-          email: claims.email ?? null,
-          username: claims.username ?? null,
-        });
+        setUser(
+          (storedUser && JSON.parse(storedUser)) || {
+            id: claims.user_id ?? claims.sub ?? null,
+            email: claims.email ?? null,
+            username: claims.username ?? null,
+          }
+        );
         return;
       }
 
       // 2) access expiré mais refresh présent → tente un refresh
       if (refresh) {
         try {
-          const res = await fetch(
-            (import.meta.env.VITE_API_BASE || "/api") + "/token/refresh/",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ refresh }),
-            }
-          );
+          const res = await fetch(`${API_BASE}/token/refresh/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh }),
+          });
           if (res.ok) {
             const data = await res.json();
             if (data?.access) {
               localStorage.setItem("access", data.access);
               const claims = decodeJwt(data.access) || {};
-              // restaure user depuis storage ou claims
               const u =
                 (storedUser && JSON.parse(storedUser)) || {
                   id: claims.user_id ?? claims.sub ?? null,
@@ -97,7 +165,7 @@ export const UserProvider = ({ children }) => {
         }
       }
 
-      // 3) rien de valide → on nettoie et on reste déconnecté
+      // 3) rien de valide → on nettoie
       localStorage.removeItem("user");
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
@@ -105,7 +173,6 @@ export const UserProvider = ({ children }) => {
     };
 
     boot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DEBUG_FORCE_LOGIN]);
 
   // Sync user <-> localStorage
@@ -114,7 +181,6 @@ export const UserProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(user));
     } else {
       localStorage.removeItem("user");
-      // (ne supprime pas forcément les tokens ici, laisse logout le faire)
     }
   }, [user]);
 
@@ -126,8 +192,8 @@ export const UserProvider = ({ children }) => {
   };
 
   const value = useMemo(
-    () => ({ user, setUser, logout, isLoggedIn: !!user }),
-    [user]
+    () => ({ user, setUser, logout, isLoggedIn: !!user, refreshUser }),
+    [user, refreshUser]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
