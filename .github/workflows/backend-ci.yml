@@ -69,21 +69,21 @@ jobs:
       - name: Generate backend/.env.dev (runtime only)
         run: |
           mkdir -p backend
-          cat > backend/.env.dev <<EOF
-          DJANGO_SETTINGS_MODULE=core.settings
-          DEBUG=True
-          SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-          DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:${{ vars.PORT_DB }}/${{ vars.POSTGRES_DB }}
-          ALLOWED_HOSTS=localhost,127.0.0.1
-          EOF
+          printf '%s\n' \
+            'DJANGO_SETTINGS_MODULE=core.settings' \
+            'DEBUG=True' \
+            "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" \
+            "DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:${{ vars.PORT_DB }}/${{ vars.POSTGRES_DB }}" \
+            'ALLOWED_HOSTS=localhost,127.0.0.1' \
+            > backend/.env.dev
 
       - name: Generate frontend/.env.dev (runtime only)
         run: |
           mkdir -p frontend
-          cat > frontend/.env.dev <<EOF
-          VITE_API_BASE=${{ vars.VITE_API_BASE }}
-          VITE_APP_ENV=${{ vars.VITE_APP_ENV }}
-          EOF
+          printf '%s\n' \
+            "VITE_API_BASE=${{ vars.VITE_API_BASE }}" \
+            "VITE_APP_ENV=${{ vars.VITE_APP_ENV }}" \
+            > frontend/.env.dev
 
       - name: Start database
         run: |
@@ -119,24 +119,20 @@ jobs:
           docker compose -f docker-compose.yml cp backend:/app/coverage.xml backend/coverage.xml || true
           docker compose -f docker-compose.yml cp backend:/app/htmlcov backend/htmlcov || true
 
-      - name: Upload JUnit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit
-          path: backend/junit.xml
-
-      - name: Upload coverage (XML + HTML)
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: |
-            backend/coverage.xml
-            backend/htmlcov
-
-      - name: Teardown and secure cleanup
-        if: always()
+      - name: Summarize coverage in Checks
         run: |
-          docker compose -f docker-compose.yml down -v
-          shred -u .env || true
-          shred -u backend/.env.dev || true
-          shred -u frontend/.env.dev || true
+          python -c "import os,xml.etree.ElementTree as ET; \
+            p='backend/coverage.xml'; \
+          try: \
+            r=ET.parse(p).getroot(); lr=r.attrib.get('line-rate'); \
+            lr=lr if lr is not None else ((r.find('.//{*}coverage') or r.find('.//coverage')).attrib.get('line-rate') if (r.find('.//{*}coverage') or r.find('.//coverage')) is not None else None); \
+            percent='N/A' if lr is None else f'{round(float(lr)*100,2)}%'; \
+            print(f'Coverage total: {percent}'); \
+              s=f'# ✅ Résumé couverture\\n\\n**Couverture globale** : **{percent}**\\n\\n- Fichier source : `backend/coverage.xml`\\n- Rapport HTML : artifact **coverage** → `htmlcov/index.html`\\n'; \
+            open('/tmp/summary.md','w',encoding='utf-8').write(s); \
+            print(f'::notice title=Coverage::{percent} total'); \
+            (open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8').write(f'coverage={percent}\\n') if 'GITHUB_OUTPUT' in os.environ else None) \
+          except Exception as e: \
+            print(f'::warning::Erreur parsing coverage.xml: {e}')"
+                                                              cat /tmp/summary.md >> "$GITHUB_STEP_SUMMARY"
+
