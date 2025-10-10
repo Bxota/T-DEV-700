@@ -104,11 +104,9 @@ class UserTeamCollection(APIView):
     get=extend_schema(
         operation_id="user_retrieve",
         tags=["Users"],
-        summary="Obtenir un utilisateur",
-        description="Retourne les détails d'un utilisateur.",
-        parameters=[
-            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="Identifiant de l'utilisateur"),
-        ],
+        summary="Retourne les utilisateur",
+        description="Retourne les utilisateurs",
+        parameters=[],
         responses={200: OpenApiTypes.OBJECT},
     ),
     post=extend_schema(
