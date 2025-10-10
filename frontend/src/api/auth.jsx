@@ -16,6 +16,7 @@ function decodeJwt(token) {
 }
 
 export function getAccess()  { return localStorage.getItem(ACCESS_KEY); }
+export function getAuthHeaders() {return { Authorization: `Bearer ${getAccess()}`, "Content-Type": "application/json" }; }
 export function getRefresh() { return localStorage.getItem(REFRESH_KEY); }
 
 export function setTokens({ access, refresh }) {
