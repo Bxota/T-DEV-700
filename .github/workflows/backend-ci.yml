@@ -70,32 +70,35 @@ jobs:
         run: |
           mkdir -p backend
           cat > backend/.env.dev <<EOF
-DJANGO_SETTINGS_MODULE=core.settings
-DEBUG=True
-SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:${{ vars.PORT_DB }}/${{ vars.POSTGRES_DB }}
-ALLOWED_HOSTS=localhost,127.0.0.1
-EOF
+          DJANGO_SETTINGS_MODULE=core.settings
+          DEBUG=True
+          SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:${{ vars.PORT_DB }}/${{ vars.POSTGRES_DB }}
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          EOF
 
       - name: Generate frontend/.env.dev (runtime only)
         run: |
           mkdir -p frontend
           cat > frontend/.env.dev <<EOF
-VITE_API_BASE=${{ vars.VITE_API_BASE }}
-VITE_APP_ENV=${{ vars.VITE_APP_ENV }}
-EOF
+          VITE_API_BASE=${{ vars.VITE_API_BASE }}
+          VITE_APP_ENV=${{ vars.VITE_APP_ENV }}
+          EOF
 
       - name: Start database
         run: |
+          set -e
           docker compose -f docker-compose.yml up -d db
           echo "Waiting for Postgres to become healthy..."
+          ready=0
           for i in {1..30}; do
             if docker compose -f docker-compose.yml exec -T db pg_isready -U "${{ secrets.POSTGRES_USER }}" -d "${{ vars.POSTGRES_DB }}" -h localhost; then
-              echo "Postgres is ready."
+              ready=1
               break
             fi
             sleep 2
           done
+          [ "$ready" -eq 1 ] || (echo "Postgres not ready in time" && exit 1)
 
       - name: Start backend (dev)
         run: docker compose -f docker-compose.yml up -d backend
@@ -108,6 +111,13 @@ EOF
               --cov=/app \
               --cov-report=xml:/app/coverage.xml \
               --cov-report=html:/app/htmlcov
+
+      - name: Collect test reports from container
+        run: |
+          mkdir -p backend
+          docker compose -f docker-compose.yml cp backend:/app/junit.xml backend/junit.xml || true
+          docker compose -f docker-compose.yml cp backend:/app/coverage.xml backend/coverage.xml || true
+          docker compose -f docker-compose.yml cp backend:/app/htmlcov backend/htmlcov || true
 
       - name: Upload JUnit report
         uses: actions/upload-artifact@v4
