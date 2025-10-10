@@ -128,10 +128,6 @@ class TeamDetail(APIView):
         if isinstance(team, dict) and "error" in team:
             return Response(team, status=status.HTTP_404_NOT_FOUND)
         return Response({"id": team.id, "name": team.name})
-        team = TeamRepository.get_team_by_id(team_id)
-        if team is None:
-            return Response({"detail": "Not found."}, status=404)
-        return Response({"team_id": team.id, "name": team.name})
 
     def put(self, request, team_id):
         name = request.data.get("name")
@@ -158,7 +154,3 @@ class TeamDetail(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"is_deleted": True}, status=status.HTTP_200_OK)
-        success = TeamRepository.delete_team(team_id)
-        if not success:
-            return Response({"detail": "Not found."}, status=404)
-        return Response(status=204)
