@@ -15,25 +15,132 @@ from drf_spectacular.utils import (
 
 from api.permissions import HasTeamTagPermission
 
+@extend_schema(
+    operation_id="user_shift_check_in",
+    tags=["Shifts - Users"],
+    summary="Check in pour le shift sélectionné",
+    description="Check in pour le shift sélectionné",
+    responses={
+        200: ShiftSerializer,
+        400: {"error": "..."}
+    }
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def user_shift_check_in(request, user_id, shift_id):
+    start_time = request.data.get("start_time")
+    if not start_time:
+        return Response(
+            {"error": "start_time field is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user = Users.objects.get(pk=user_id)
+    except Users.DoesNotExist:
+        return Response(
+            {"error": "User not found."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    try:
+        shift = Shifts.objects.get(pk=shift_id)
+    except Shifts.DoesNotExist:
+        return Response(
+            {"error": "Shift not found."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    if shift.user.id != user.id:
+        return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if shift.real_start_time is not None:
+        return Response({"error": "Shift already have a real start time"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    shift = ShiftManager.check_in(shift_id=shift_id, start_time=start_time)
+
+    if isinstance(shift, dict) and "error" in shift:
+        return Response(shift, status=status.HTTP_400_BAD_REQUEST)
+
+    data = ShiftSerializer(shift).data
+    return Response({"is_check_in": True, "shift": data}, status=status.HTTP_200_OK)
+
+@extend_schema(
+    operation_id="user_shift_check_out",
+    tags=["Shifts - Users"],
+    summary="Check out pour le shift sélectionné",
+    description="Check out pour le shift sélectionné",
+    responses={
+        200: ShiftSerializer,
+        400: {"error": "..."}
+    },
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def user_shift_check_out(request, user_id, shift_id):
+    end_time = request.data.get("end_time")
+    if not end_time:
+        return Response(
+            {"error": "end_time field is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user = Users.objects.get(pk=user_id)
+    except Users.DoesNotExist:
+        return Response(
+            {"error": "User not found."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    try:
+        shift = Shifts.objects.get(pk=shift_id)
+    except Shifts.DoesNotExist:
+        return Response(
+            {"error": "Shift not found."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    if shift.user.id != user.id:
+        return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if shift.real_end_time is not None:
+        return Response({"error": "Shift already have a real end time"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if shift.real_start_time is None:
+        return Response({"error": "Shift doesn't have a real start time, you cannot put real end time."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    shift = ShiftManager.check_out(shift_id=shift_id, end_time=end_time)
+
+    if isinstance(shift, dict) and "error" in shift:
+        return Response(shift, status=status.HTTP_400_BAD_REQUEST)
+
+    data = ShiftSerializer(shift).data
+    return Response({"is_check_out": True, "shift": data}, status=status.HTTP_200_OK)
+
 @extend_schema_view(
     get=extend_schema(
         operation_id="user_shift_retrieve",
         tags=["Shifts - Users"],
-        summary="Obtenir un shift d’un utilisateur",
+        summary="Obtenir un shift d'un utilisateur",
         parameters=[
             OpenApiParameter("user_id", int, OpenApiParameter.PATH),
             OpenApiParameter("shift_id", int, OpenApiParameter.PATH),
         ],
+        responses={
+            200: ShiftSerializer,
+            400: {"error": "..."}
+        }
     ),
     post=extend_schema(
         operation_id="user_shift_update",
         tags=["Shifts - Users"],
-        summary="Mettre à jour un shift d’un utilisateur",
+        summary="Mettre à jour un shift d'un utilisateur",
     ),
     delete=extend_schema(
         operation_id="user_shift_delete",
         tags=["Shifts - Users"],
-        summary="Supprimer un shift d’un utilisateur",
+        summary="Supprimer un shift d'un utilisateur",
     ),
 )
 class UserShiftDetail(APIView):
@@ -198,7 +305,7 @@ class UserShiftCollection(APIView):
         operation_id="team_shift_create",
         tags=["Shifts - Teams"],
         summary="Créer un shift (équipe)",
-        description="Crée un nouveau shift au niveau de l’équipe.",
+        description="Crée un nouveau shift au niveau de l'équipe.",
         responses={201: OpenApiTypes.OBJECT},
     ),
 )
