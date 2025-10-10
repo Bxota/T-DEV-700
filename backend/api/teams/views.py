@@ -4,7 +4,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+
 from api.teams.service import TeamManager
+from db_manager.serializers import TeamSerializer
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
@@ -79,11 +81,8 @@ class TeamCollection(APIView):
         if isinstance(team, dict) and "error" in team:
             return Response(team, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            {"is_created": True, "name": team.name},
-            status=status.HTTP_201_CREATED
-        )
-
+        data = TeamSerializer(team).data
+        return Response({"team": data}, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     get=extend_schema(
