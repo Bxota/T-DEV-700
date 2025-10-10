@@ -119,20 +119,52 @@ jobs:
           docker compose -f docker-compose.yml cp backend:/app/coverage.xml backend/coverage.xml || true
           docker compose -f docker-compose.yml cp backend:/app/htmlcov backend/htmlcov || true
 
-      - name: Summarize coverage in Checks
+      - name: Write coverage_summary.py
+        shell: bash
         run: |
-          python -c "import os,xml.etree.ElementTree as ET; \
-            p='backend/coverage.xml'; \
-          try: \
-            r=ET.parse(p).getroot(); lr=r.attrib.get('line-rate'); \
-            lr=lr if lr is not None else ((r.find('.//{*}coverage') or r.find('.//coverage')).attrib.get('line-rate') if (r.find('.//{*}coverage') or r.find('.//coverage')) is not None else None); \
-            percent='N/A' if lr is None else f'{round(float(lr)*100,2)}%'; \
-            print(f'Coverage total: {percent}'); \
-              s=f'# ✅ Résumé couverture\\n\\n**Couverture globale** : **{percent}**\\n\\n- Fichier source : `backend/coverage.xml`\\n- Rapport HTML : artifact **coverage** → `htmlcov/index.html`\\n'; \
-            open('/tmp/summary.md','w',encoding='utf-8').write(s); \
-            print(f'::notice title=Coverage::{percent} total'); \
-            (open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8').write(f'coverage={percent}\\n') if 'GITHUB_OUTPUT' in os.environ else None) \
-          except Exception as e: \
-            print(f'::warning::Erreur parsing coverage.xml: {e}')"
-                                                              cat /tmp/summary.md >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p .ci
+          cat > .ci/coverage_summary.py <<'PY'
+  import os
+  import xml.etree.ElementTree as ET
+  
+  PATH = "backend/coverage.xml"
 
+def compute_percent(path: str) -> str:
+                            try:
+                              root = ET.parse(path).getroot()
+                              line_rate = root.attrib.get("line-rate")
+                              if line_rate is None:
+                                metrics = root.find(".//{*}coverage") or root.find(".//coverage")
+                                line_rate = metrics.attrib.get("line-rate") if metrics is not None else None
+                              if line_rate is None:
+                                return "N/A"
+                              return f"{round(float(line_rate) * 100, 2)}%"
+                            except Exception as e:
+                              print(f"::warning::Erreur parsing coverage.xml: {e}")
+        return "N/A"
+
+  percent = compute_percent(PATH)
+print(f"Coverage total: {percent}")
+
+summary = (
+    "# ✅ Résumé couverture\n\n"
+                          f"**Couverture globale** : **{percent}**\n\n"
+                          "- Fichier source : backend/coverage.xml\n"
+                          "- Rapport HTML : artifact coverage → htmlcov/index.html\n"
+  )
+
+with open("/tmp/summary.md", "w", encoding="utf-8") as f:
+  f.write(summary)
+  
+  print(f"::notice title=Coverage::{percent} total")
+
+if "GITHUB_OUTPUT" in os.environ:
+  with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+    f.write(f"coverage={percent}\n")
+  PY
+
+- name: Summarize coverage in Checks
+  shell: bash
+  run: |
+    python .ci/coverage_summary.py
+    cat /tmp/summary.md >> "$GITHUB_STEP_SUMMARY"
