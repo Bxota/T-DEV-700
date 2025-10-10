@@ -8,6 +8,7 @@ from rest_framework import status
 from api.teams.service import TeamManager
 from db_manager.serializers import TeamSerializer
 from db_manager.repositories.team_repository import TeamRepository
+from db_manager.serializers import TeamSerializer
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
