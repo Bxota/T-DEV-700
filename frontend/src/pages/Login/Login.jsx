@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import "./Login.css";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
-import { login } from "../../api/auth";           // ⬅️ whoami supprimé
+import { login } from "../../api/auth"; // se charge d'appeler /token/ et de stocker access/refresh
 
 export default function Login() {
-  const { setUser } = useUser();
+  const { setUser, refreshUser } = useUser(); // 👈 on récupère refreshUser
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");   // string only
+  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -19,22 +19,23 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // login() doit enregistrer access/refresh dans localStorage et renvoyer { claims }
       const { claims } = await login(email.trim(), password);
 
-      // construit un user sans appeler whoami
-      const user = {
+      // Hydrate rapidement le contexte (email, id) pour éviter l'état "non connecté"
+      const minimalUser = {
         id: claims?.user_id ?? claims?.sub ?? null,
         email: claims?.email ?? email.trim(),
         username: claims?.username ?? null,
       };
+      setUser(minimalUser);
 
-      setUser(user);
+      // 🔥 met à jour immédiatement avec first_name/last_name via whoami
+      await refreshUser();
+
       navigate("/");
     } catch (err) {
-      // 🔒 Toujours une string -> évite "Objects are not valid as a React child"
-      const msg =
-        err?.message ||
-        "Impossible de contacter le serveur.";
+      const msg = err?.message || "Impossible de contacter le serveur.";
       setErrorMsg(String(msg));
     } finally {
       setLoading(false);
@@ -71,9 +72,7 @@ export default function Login() {
           </div>
 
           {errorMsg ? (
-            <p style={{ color: "crimson", marginTop: 8 }}>
-              {errorMsg}
-            </p>
+            <p style={{ color: "crimson", marginTop: 8 }}>{errorMsg}</p>
           ) : null}
 
           <button type="submit" className="login-button" disabled={loading}>
