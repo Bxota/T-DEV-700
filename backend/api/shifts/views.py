@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from api.shifts.service import ShiftManager
 from db_manager.models import Users, Shifts
@@ -28,29 +29,14 @@ from api.permissions import HasTeamTagPermission
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def user_shift_check_in(request, user_id, shift_id):
-    start_time = request.data.get("start_time")
-    if not start_time:
-        return Response(
-            {"error": "start_time field is required."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
     try:
-        user = Users.objects.get(pk=user_id)
-    except Users.DoesNotExist:
-        return Response(
-            {"error": "User not found."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        start_time = ShiftManager.check_body_element(request, "start_time")
+        user = ShiftManager.check_db_element_exist(Users, user_id)
+        shift = ShiftManager.check_db_element_exist(Shifts, shift_id)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
         
-    try:
-        shift = Shifts.objects.get(pk=shift_id)
-    except Shifts.DoesNotExist:
-        return Response(
-            {"error": "Shift not found."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-        
+            
     if shift.user.id != user.id:
         return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
     
