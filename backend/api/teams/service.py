@@ -56,7 +56,7 @@ class TeamManager:
             ).count()
             
             if totalShifts == 0:
-                return None
+                return None, None
             
             absences_rate = round((absence_shifts / totalShifts) * 100, 2)
             
