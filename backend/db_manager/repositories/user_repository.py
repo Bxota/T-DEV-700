@@ -1,16 +1,12 @@
 from db_manager.models import Teams, Users
 
-class UserRepository:
+class UserRepository:        
     @staticmethod
     def get_users_by_team_id(team_id):
         try:
             if not Teams.objects.filter(id=team_id).exists():
                 return {"error": "Team not found"}
-            return list(Users.objects.filter(team_id=team_id).order_by('id').values(
-                'id', 'email', 'first_name', 'last_name', 'team_id', 'phone_number', 'role_id'
-            ))
-        except Users.DoesNotExist:
-            return []
+            return Users.objects.filter(team_id=team_id).order_by('id')
         except Exception as e:
             return {"error": str(e)}
         

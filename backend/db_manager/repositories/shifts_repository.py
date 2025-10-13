@@ -12,8 +12,7 @@ class ShiftRepository:
     @staticmethod
     def get_shifts_by_user_id(user_id):
         try:
-            shifts = Shifts.objects.filter(user_id=user_id)
-            return list(shifts)
+            return Shifts.objects.filter(user_id=user_id).order_by('id')
         except Exception as e:
             return {"error": str(e)}
 
