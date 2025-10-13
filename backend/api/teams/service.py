@@ -1,6 +1,7 @@
+from api.service import AbstractManager
 from db_manager.repositories.team_repository import TeamRepository
 
-class TeamManager:
+class TeamManager(AbstractManager):
     @staticmethod
     def list_teams():
         return TeamRepository.get_teams()

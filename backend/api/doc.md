@@ -30,11 +30,11 @@
 
 ## USERS
 
-### **GET /users/<team_id>**
+### **GET /users/teams/<team_id>**
 - Returns all users in the specified team (`id`, `email`, `first_name`, `last_name`, `team_id`, `phone_number`, `role_id`).
 - **Permissions:** Authenticated users.
 
-### **POST /users/<team_id>**
+### **POST /users/teams/<team_id>**
 - Assigns a user to the specified team using the provided `user_id` (`{"user_id": integer}`).
 - **Permissions:** Authenticated + Manager role.
 

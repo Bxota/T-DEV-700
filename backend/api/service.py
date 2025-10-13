@@ -39,3 +39,16 @@ class AbstractManager:
             raise ValidationError({
                 "error": f"{obj.__class__.__name__.lower()} doesn't has a {attr_name} element"
             })
+    def check_if_db_element_with_name_exist(className, name: str):
+        if className.objects.filter(name=name).exists():
+            raise ValidationError({"error": f"{className.__name__.lower()} with this name already exists."})
+        
+    def check_if_db_element_with_email_exist(className, email: str):
+        if className.objects.filter(email=email).exists():
+            raise ValidationError({"error": f"{className.__name__.lower()} with this email already exists."})
+        
+    def check_valid_field_in_kwargs(className, **kwargs):
+        valid_fields = ['email', 'first_name', 'last_name', 'team_id', 'phone_number', 'role_id', 'password']
+        for key in kwargs.keys():
+            if key not in valid_fields:
+                raise ValidationError({"error": f"{key} is not a valid field of {className.__name__.lower()}."})

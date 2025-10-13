@@ -1,9 +1,11 @@
+from db_manager.models import Teams, Users
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from api.users.service import UserManager
+from rest_framework.exceptions import APIException
 
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
@@ -82,24 +84,45 @@ class UserTeamCollection(APIView):
         return [IsAuthenticated()]
     
     def get(self, request, team_id):
-        users = UserManager.get_users_by_team_id(team_id)
-        if isinstance(users, dict) and "error" in users:
-            return Response(users, status=status.HTTP_404_NOT_FOUND)
-        return Response({"users": users})
+        try:
+            UserManager.check_db_element_exist(Teams, team_id)
+
+            users = UserManager.get_users_by_team_id(team_id)
+
+            return Response({"users": users}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def post(self, request, team_id):
-        user_id = request.data.get("user_id")
-        if not user_id:
-            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        if not team_id:
-            return Response({"error": "team_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        result = UserManager.add_user_to_team(user_id, team_id)
-        if isinstance(result, dict) and "error" in result:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response({"is_added": True}, status=status.HTTP_201_CREATED)
-  
+        try:
+            UserManager.check_db_element_exist(Teams, team_id)
+
+            UserManager.check_body_element(request, "user_id")
+
+            UserManager.check_db_element_exist(Users, request.data.get("user_id"))
+
+            UserManager.add_user_to_team(request.data.get("user_id"), team_id)
+
+            return Response({"is_added": True}, status=status.HTTP_201_CREATED)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+    
+    def delete(self, request, team_id):
+        try:
+            UserManager.check_db_element_exist(Teams, team_id)
+
+            UserManager.check_body_element(request, "user_id")
+
+            UserManager.check_db_element_exist(Users, request.data.get("user_id"))
+
+            UserManager.delete_user_from_team(request.data.get("user_id"), team_id)
+
+            return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+
 @extend_schema_view(
     get=extend_schema(
         operation_id="user_retrieve",
@@ -151,31 +174,29 @@ class UserCollection(APIView):
         return [IsAuthenticated()]
 
     def get(self, request):
-        users = UserManager.get_all_users()
+        try:
+            users = UserManager.get_all_users()
 
-        if isinstance(users, dict) and "error" in users:
-            return Response(users, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"users": users}, status=status.HTTP_200_OK)
+            return Response({"users": users}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def post(self, request):
-        user_data = request.data
+        try:
+            user_data = request.data
 
-        if not user_data.get("email") or not user_data.get("password") or not user_data.get("first_name") or not user_data.get("last_name"):
-            return Response({"error": "email, password, first_name and last_name are mandatory."}, status=status.HTTP_400_BAD_REQUEST)
+            UserManager.check_body_element(request, "email")
+            UserManager.check_body_element(request, "password")
 
-        user = UserManager.create_user(**user_data)
+            UserManager.check_if_db_element_with_email_exist(Users, request.data.get("email"))
 
-        if isinstance(user, dict) and "error" in user:
-            return Response(user, status=status.HTTP_400_BAD_REQUEST)
+            user = UserManager.create_user(**user_data)
 
-        return Response({"is_created": True, "user": user}, status=status.HTTP_201_CREATED)
-
-    def put(self, request, team_id):
-        return Response({"updated": True, "team_id": team_id})
-
-    def delete(self, request, team_id):
-        return Response({"deleted": True, "team_id": team_id})
+            return Response({"user": user}, status=status.HTTP_201_CREATED)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
     
 @extend_schema_view(
     get=extend_schema(
@@ -231,18 +252,25 @@ class UserDetail(APIView):
         return Response({"user": user}, status=status.HTTP_200_OK)
 
     def put(self, request, user_id):
-        user_data = request.data
-        user = UserManager.update_user(user_id, **user_data)
+        try:
+            UserManager.check_db_element_exist(Users, user_id)
+            
+            UserManager.check_valid_field_in_kwargs(Users, **request.data)
+            
+            UserManager.update_user(user_id, **request.data)
 
-        if isinstance(user, dict) and "error" in user:
-            return Response(user, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"is_updated": True}, status=status.HTTP_200_OK)
+            return Response({"is_updated": True}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
     
     def delete(self, request, user_id):
-        result = UserManager.delete_user(user_id)
+        try:
+            UserManager.check_db_element_exist(Users, user_id)
 
-        if isinstance(result, dict) and "error" in result:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            UserManager.delete_user(user_id)
 
-        return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+            return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
