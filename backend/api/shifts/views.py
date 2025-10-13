@@ -33,23 +33,16 @@ def user_shift_check_in(request, user_id, shift_id):
         start_time = ShiftManager.check_body_element(request, "start_time")
         user = ShiftManager.check_db_element_exist(Users, user_id)
         shift = ShiftManager.check_db_element_exist(Shifts, shift_id)
+        
+        ShiftManager.check_is_equal(shift, shift.user.id, user, user.id)
+        ShiftManager.check_is_not_start_time(shift)
+        
+        shift = ShiftManager.check_in(shift_id=shift_id, start_time=start_time)
+
+        shift_serialized = ShiftManager.check_db_return(shift, ShiftSerializer)
+        return Response({"is_check_in": True, "shift": shift_serialized}, status=status.HTTP_200_OK)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
-        
-            
-    if shift.user.id != user.id:
-        return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
-    
-    if shift.real_start_time is not None:
-        return Response({"error": "Shift already have a real start time"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    shift = ShiftManager.check_in(shift_id=shift_id, start_time=start_time)
-
-    if isinstance(shift, dict) and "error" in shift:
-        return Response(shift, status=status.HTTP_400_BAD_REQUEST)
-
-    data = ShiftSerializer(shift).data
-    return Response({"is_check_in": True, "shift": data}, status=status.HTTP_200_OK)
 
 @extend_schema(
     operation_id="user_shift_check_out",

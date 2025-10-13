@@ -1,6 +1,13 @@
 from rest_framework.exceptions import ValidationError
 
 class AbstractManager:
+    def check_db_return(element, serializer):
+        if isinstance(element, dict) and "error" in element:
+            raise ValidationError(element)
+        
+        else:
+            return serializer(element).data
+    
     def check_body_element(request, name: str):
         element = request.data.get(name)
         if not element:
@@ -14,3 +21,7 @@ class AbstractManager:
             return element
         except className.DoesNotExist:
             raise ValidationError({"error": f"{className.__name__.lower()} not found."})
+        
+    def check_is_equal(first_element_name, first_element, second_element_name, second_element):
+        if first_element != second_element:
+            raise ValidationError({"error": f"{first_element_name.__class__.__name__.lower()} and {second_element_name.__class__.__name__.lower()} are not linked."})
