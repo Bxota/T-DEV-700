@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Planning from "./Planning";
 import TeamStats from "./TeamStats";
-import PersonalInfo from "./PersonalInfo";
 import "./css/Manager.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -36,6 +35,7 @@ export default function Manager() {
         // Vérifiez que data est bien un tableau
         if (Array.isArray(data.teams)) {
           setTeams(data.teams);
+          setSelectedTeam(data.teams.length > 0 ? data.teams[0].id : ""); // Sélectionne la première équipe si disponible
         } else {
           console.error("La réponse de l'API n'est pas un tableau:", data);
           setTeams([]); // Force un tableau vide si la réponse n'est pas un tableau
@@ -89,15 +89,14 @@ export default function Manager() {
           dateFormat="dd/MM/yyyy"
           className="datepicker-input"
         />
+        </div>
         
         <Planning 
           selectedTeam={selectedTeam} 
           selectedDate={selectedDate}
           teams={teams}
         />
-      </div>
       
-      <PersonalInfo />
       
       {/* Flèche pour afficher/masquer les stats */}
       <button 
