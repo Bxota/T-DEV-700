@@ -1,3 +1,4 @@
+from api.service import AbstractManager
 from db_manager.repositories.team_repository import TeamRepository
 
 from django.utils.timezone import now
@@ -55,7 +56,7 @@ class TeamManager:
             ).count()
             
             if totalShifts == 0:
-                return None
+                return None, None
             
             absences_rate = round((absence_shifts / totalShifts) * 100, 2)
             
