@@ -1,7 +1,7 @@
 from db_manager.models import Teams, Users
 from rest_framework.exceptions import APIException
 
-class UserRepository:
+class UserRepository:        
     @staticmethod
     def get_users_by_team_id(team_id):
         try:

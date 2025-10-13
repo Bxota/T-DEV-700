@@ -213,9 +213,9 @@ class UserShiftCollection(APIView):
 
     def get(self, request, user_id):
         shifts = ShiftManager.list_shifts_by_user_id(user_id)
-        if isinstance(shifts, dict) and "error" in shifts:
-            return Response(shifts, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"shifts": shifts})
+        shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
+        
+        return Response({"shifts": shifts_serialized}, status=status.HTTP_200_OK)
 
     def post(self, request, user_id):
         start_time = request.data.get("start_time")

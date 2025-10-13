@@ -6,7 +6,7 @@ class AbstractManager:
             raise ValidationError(element)
         
         else:
-            return serializer(element).data
+            return serializer(element, many=True).data
     
     def check_body_element(request, name: str):
         element = request.data.get(name)
