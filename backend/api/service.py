@@ -25,3 +25,17 @@ class AbstractManager:
     def check_is_equal(first_element_name, first_element, second_element_name, second_element):
         if first_element != second_element:
             raise ValidationError({"error": f"{first_element_name.__class__.__name__.lower()} and {second_element_name.__class__.__name__.lower()} are not linked."})
+        
+    def check_is_not_have_element(obj, attr_name: str):
+        value = getattr(obj, attr_name, None)
+        if value is not None:
+            raise ValidationError({
+                "error": f"{obj.__class__.__name__.lower()} already has a {attr_name} element"
+            })
+        
+    def check_is_have_element(obj, attr_name: str):
+        value = getattr(obj, attr_name, None)
+        if value is None:
+            raise ValidationError({
+                "error": f"{obj.__class__.__name__.lower()} doesn't has a {attr_name} element"
+            })

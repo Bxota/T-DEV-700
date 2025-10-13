@@ -38,7 +38,3 @@ class ShiftManager(AbstractManager):
     @staticmethod
     def check_out(shift_id: int, end_time: datetime):
         return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)       
-    
-    def check_is_not_start_time(shift):
-        if shift.real_start_time is not None:
-            raise ValidationError({"error": f"{shift.__class__.__name__.lower()} already have a real start time"})
