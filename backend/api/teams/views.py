@@ -7,6 +7,7 @@ from rest_framework import status
 
 from api.teams.service import TeamManager
 from api.users.service import UserManager
+from api.shifts.service import ShiftManager
 from db_manager.serializers import TeamSerializer
 
 from drf_spectacular.utils import (
@@ -27,14 +28,16 @@ from api.permissions import HasTeamTagPermission
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
 def get_team_reports(request, team_id):
-    """
-    Rapport possibles : 
-    - calculer le taux de retard de l'équipe
-    - voir le nombre d'absences
-    - indiquer le nombre d'heures travaillées
-    - indiquer le nombre d'employés dans l'équipe
-    """
-    return Response({})
+    members = UserManager.get_users_by_team_id(team_id)
+    
+    report = []
+    for member in members:
+        member_shifts = ShiftManager.list_shifts_by_user_id(member.id)
+        user_kpis = TeamManager.generate_user_kpi_report(member, member_shifts)
+        report.append(user_kpis)
+    report.append({"members": members.count()})
+    
+    return Response(report, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     get=extend_schema(
