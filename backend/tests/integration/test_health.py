@@ -1,24 +1,21 @@
 import pytest
 
-PUBLIC = "/api/health/"
-AUTH = "/api/health/auth/"
-MANAGER = "/api/health/auth-manager/"
-
+from test_CONSTANTS import *
 
 def test_health_ok(api_client):
-    r = api_client.get(PUBLIC)
+    r = api_client.get(HEALTH)
     assert r.status_code == 200
 
 
 @pytest.mark.django_db
 def test_health_authenticated_requires_token(api_client):
-    r = api_client.get(AUTH)
+    r = api_client.get(HEALTH_AUTH)
     assert r.status_code == 401
 
 
 @pytest.mark.django_db
 def test_health_authenticated_ok(api_client, auth_headers):
-    r = api_client.get(AUTH, **auth_headers)
+    r = api_client.get(HEALTH_AUTH, **auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert "message" in data
@@ -27,7 +24,7 @@ def test_health_authenticated_ok(api_client, auth_headers):
 @pytest.mark.django_db
 def test_health_manager_requires_permission(api_client, auth_headers, manager_role):
     # Authentifié mais sans la permission custom -> 403
-    r = api_client.get(MANAGER, **auth_headers)
+    r = api_client.get(HEALTH_AUTH_MANAGER, **auth_headers)
     assert r.status_code == 403
 
 
@@ -43,7 +40,7 @@ def test_health_manager_with_permission(api_client, auth_headers, monkeypatch):
         lambda self, request, view: True,
     )
 
-    r = api_client.get(MANAGER, **auth_headers)
+    r = api_client.get(HEALTH_AUTH_MANAGER, **auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert "message" in data

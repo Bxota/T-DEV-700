@@ -1,8 +1,13 @@
 from db_manager.repositories.shifts_repository import ShiftRepository
-from datetime import datetime
 from db_manager.models import Users
 
-class ShiftManager:
+from rest_framework.exceptions import ValidationError
+
+from datetime import datetime
+
+from ..service import AbstractManager
+
+class ShiftManager(AbstractManager):
     @staticmethod
     def list_shifts():
         return ShiftRepository.get_shifts()
@@ -32,4 +37,4 @@ class ShiftManager:
     
     @staticmethod
     def check_out(shift_id: int, end_time: datetime):
-        return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)
+        return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)       

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from api.teams.service import TeamManager
+from api.users.service import UserManager
 from db_manager.serializers import TeamSerializer
 
 from drf_spectacular.utils import (
@@ -121,9 +122,10 @@ class TeamDetail(APIView):
 
     def get(self, request, team_id):
         team = TeamManager.get_team_by_id(team_id)
+        members = UserManager.get_users_by_team_id(team_id)
         if isinstance(team, dict) and "error" in team:
             return Response(team, status=status.HTTP_404_NOT_FOUND)
-        return Response({"id": team.id, "name": team.name})
+        return Response({"id": team.id, "name": team.name, "members": members})
 
     def put(self, request, team_id):
         name = request.data.get("name")
