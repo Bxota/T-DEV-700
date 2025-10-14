@@ -1,174 +1,213 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
+
+import {
+  BASE as ENV_BASE,
+  getAuthHeaders,
+  getAccess,
+  logout,
+} from '../../api/auth'; // adapte le chemin si besoin
+
+// Base API (.env Vite: VITE_API_BASE=/api ou http://localhost:8080/api)
+const API_BASE = (ENV_BASE || '/api').replace(/\/$/, '');
+
+// ---- Helpers généraux ----
+function parseJwtUserId(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(payload);
+    const data = JSON.parse(decodeURIComponent(escape(json)));
+    return data.user_id ?? data.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+function fmtHHmm(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function toDate(iso) { return iso ? new Date(iso) : null; }
+function colorForCheckIn(plannedIso, realIso) {
+  if (!realIso) return '#111';
+  const p = toDate(plannedIso), r = toDate(realIso);
+  return r <= p ? 'green' : 'red'; // à l’heure ou en avance -> vert
+}
+function colorForCheckOut(plannedIso, realIso) {
+  if (!realIso) return '#111';
+  const p = toDate(plannedIso), r = toDate(realIso);
+  return r >= p ? 'green' : 'red'; // pas avant l’heure -> vert
+}
+function isToday(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const t = new Date();
+  return d.getFullYear() === t.getFullYear()
+    && d.getMonth() === t.getMonth()
+    && d.getDate() === t.getDate();
+}
+// pour le bouton “Créer shift 08–12”
+function isoForToday(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+}
 
 const Dashboard = () => {
-  const [pointeages, setPointeages] = useState({
-    matinIn: null,
-    matinOff: null,
-    apresMidiIn: null,
-    apresMidiOff: null,
-  });
+  // ---- Auth / user_id
+  const access = useMemo(() => getAccess(), []);
+  const userId = useMemo(() => parseJwtUserId(access), [access]);
+  if (!access || !userId) { logout(); return null; }
 
-  const heuresPrevues = {
-    matinIn: '08:00',
-    matinOff: '12:00',
-    apresMidiIn: '14:00',
-    apresMidiOff: '18:00',
-  };
+  // ---- State
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+  const [shifts, setShifts]   = useState([]);
 
-  const handleClick = (type) => {
-    const now = new Date();
-    const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}`;
+  const headers = () => getAuthHeaders();
 
-    setPointeages({ ...pointeages, [type]: formattedTime });
-  };
+  // ---- Charger automatiquement les shifts au montage
+  useEffect(() => { fetchUserShifts(); }, []);
 
-  const getColor = (type) => {
-    if (!pointeages[type]) return 'black';
-    const [realH, realM] = pointeages[type].split(':').map(Number);
-    const [plannedH, plannedM] = heuresPrevues[type].split(':').map(Number);
+  async function fetchUserShifts() {
+    setError(''); setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/users/${userId}/shifts/`, {
+        method: 'GET', headers: headers(),
+      });
+      const ct = res.headers.get('content-type') || '';
+      const data = ct.includes('application/json') ? await res.json() : { error: await res.text() };
+      if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
+      setShifts(Array.isArray(data?.shifts) ? data.shifts : []);
+    } catch (e) {
+      setError(e.message || 'Erreur réseau');
+    } finally { setLoading(false); }
+  }
 
-    if (type.includes('In')) {
-      return realH < plannedH || (realH === plannedH && realM <= plannedM)
-        ? 'green'
-        : 'red';
-    } else {
-      return realH > plannedH || (realH === plannedH && realM >= plannedM)
-        ? 'green'
-        : 'red';
-    }
-  };
+  // ---- Créer un shift de test 08–12 (aujourd’hui)
+  async function createShift0812() {
+    setError(''); setLoading(true);
+    try {
+      const body = { start_time: isoForToday('08:00'), end_time: isoForToday('12:00') };
+      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/`, {
+        method: 'POST', headers: headers(), body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
+      await fetchUserShifts(); // recharge la liste
+    } catch (e) {
+      setError(e.message || 'Erreur réseau');
+    } finally { setLoading(false); }
+  }
 
-  const totalSlots = 4;
-  const filledSlots = Object.values(pointeages).filter(Boolean).length;
-  const percentage = Math.round((filledSlots / totalSlots) * 100);
+  // ---- Actions API par shift
+  async function rowCheckIn(s) {
+    setError(''); setLoading(true);
+    try {
+      const body = { start_time: new Date().toISOString() };
+      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/${s.id}/check-in/`, {
+        method: 'POST', headers: headers(), body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
+      const updated = data?.shift || {};
+      setShifts(lst => lst.map(x => (x.id === s.id ? { ...x, ...updated } : x)));
+    } catch (e) {
+      setError(e.message || 'Erreur réseau');
+    } finally { setLoading(false); }
+  }
+
+  async function rowCheckOut(s) {
+    setError(''); setLoading(true);
+    try {
+      const body = { end_time: new Date().toISOString() };
+      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/${s.id}/check-out/`, {
+        method: 'POST', headers: headers(), body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
+      const updated = data?.shift || {};
+      setShifts(lst => lst.map(x => (x.id === s.id ? { ...x, ...updated } : x)));
+    } catch (e) {
+      setError(e.message || 'Erreur réseau');
+    } finally { setLoading(false); }
+  }
 
   return (
-    <div style={{ marginLeft: '250px', padding: '20px' }}>
+    <div className="dashboard-root" style={{ marginLeft: '250px', padding: '20px' }}>
       <h1>Dashboard</h1>
+      {error && <p className="error-text">{error}</p>}
+      {loading && <p className="muted-text">Chargement…</p>}
 
-      {/* SECTION CHECK-IN / POINTAGE */}
       <div className="section">
-        <h2 className="section-title">Check-In / Pointage</h2>
+        <h2 className="section-title">Mes shifts</h2>
 
-        {/* Bloc Matin */}
-        <div className="bloc">
-          <div className="bloc-title">
-            <h3>Matin</h3>
-          </div>
-          <div className="button-row">
-            <div>
-              <button
-                className="pointage-button"
-                onClick={() => handleClick('matinIn')}
-              >
-                In
-              </button>
-              <span
-                className="pointage-time"
-                style={{
-                  color: pointeages.matinIn ? getColor('matinIn') : 'black',
-                }}
-              >
-                {pointeages.matinIn
-                  ? `Réel ${pointeages.matinIn}`
-                  : `Prévu ${heuresPrevues.matinIn}`}
-              </span>
-            </div>
-
-            <div>
-              <button
-                className="pointage-button"
-                onClick={() => handleClick('matinOff')}
-              >
-                Off
-              </button>
-              <span
-                className="pointage-time"
-                style={{
-                  color: pointeages.matinOff ? getColor('matinOff') : 'black',
-                }}
-              >
-                {pointeages.matinOff
-                  ? `Réel ${pointeages.matinOff}`
-                  : `Prévu ${heuresPrevues.matinOff}`}
-              </span>
-            </div>
-          </div>
+        {/* Barre d’actions */}
+        <div style={{ display:'flex', gap:12, justifyContent:'center', marginBottom:16, flexWrap:'wrap' }}>
+          <button className="pointage-button" onClick={fetchUserShifts} disabled={loading}>
+            Rafraîchir
+          </button>
+          <button className="pointage-button" onClick={createShift0812} disabled={loading}>
+            Créer shift 08–12
+          </button>
         </div>
 
-        {/* Bloc Après-midi */}
-        <div className="bloc">
-          <div className="bloc-title">
-            <h3>Après-midi</h3>
-          </div>
-          <div className="button-row">
-            <div>
-              <button
-                className="pointage-button"
-                onClick={() => handleClick('apresMidiIn')}
-              >
-                In
-              </button>
-              <span
-                className="pointage-time"
-                style={{
-                  color: pointeages.apresMidiIn
-                    ? getColor('apresMidiIn')
-                    : 'black',
-                }}
-              >
-                {pointeages.apresMidiIn
-                  ? `Réel ${pointeages.apresMidiIn}`
-                  : `Prévu ${heuresPrevues.apresMidiIn}`}
-              </span>
-            </div>
+        {/* Affichage par shift : deux gros boutons alignés + couleurs + grisé si terminé */}
+        {shifts.length === 0 && <p className="muted-text">Aucun shift.</p>}
 
-            <div>
-              <button
-                className="pointage-button"
-                onClick={() => handleClick('apresMidiOff')}
-              >
-                Off
-              </button>
-              <span
-                className="pointage-time"
-                style={{
-                  color: pointeages.apresMidiOff
-                    ? getColor('apresMidiOff')
-                    : 'black',
-                }}
-              >
-                {pointeages.apresMidiOff
-                  ? `Réel ${pointeages.apresMidiOff}`
-                  : `Prévu ${heuresPrevues.apresMidiOff}`}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        {shifts.map((s) => {
+          const completedToday = isToday(s.start_time) && s.real_start_time && s.real_end_time;
+          return (
+            <div
+              key={s.id}
+              className={`bloc shift-block ${completedToday ? 'completed' : ''}`}
+              style={{ marginBottom: 28 }}
+            >
+              <div className="bloc-title"><h3>Shift #{s.id}</h3></div>
+              <div className="bloc-title"><h3>Matin</h3></div>
 
-      {/* SECTION STATISTIQUES */}
-      <div className="section">
-        <h2 className="section-title">Statistiques</h2>
-        <div style={{ width: '150px', margin: '20px auto' }}>
-          <CircularProgressbar
-            value={percentage}
-            text={`${percentage}%`}
-            styles={buildStyles({
-              textSize: '18px',
-              pathColor: `#007bff`,
-              textColor: '#333',
-              trailColor: '#eee',
-            })}
-          />
-          <p style={{ textAlign: 'center', marginTop: '10px' }}>Présence</p>
-        </div>
+              <div className="shift-actions">
+                {/* Check-in */}
+                <div className="shift-action">
+                  <button
+                    className="pointage-button"
+                    onClick={() => rowCheckIn(s)}
+                    disabled={!!s.real_start_time || completedToday || loading}
+                  >
+                    Check-in<br/>API
+                  </button>
+                  <span
+                    className="pointage-time"
+                    style={{ color: colorForCheckIn(s.start_time, s.real_start_time) }}
+                  >
+                    {s.real_start_time
+                      ? `Réel ${fmtHHmm(s.real_start_time)}`
+                      : `Prévu ${fmtHHmm(s.start_time)}`}
+                  </span>
+                </div>
+
+                {/* Check-out */}
+                <div className="shift-action">
+                  <button
+                    className="pointage-button"
+                    onClick={() => rowCheckOut(s)}
+                    disabled={!s.real_start_time || !!s.real_end_time || completedToday || loading}
+                  >
+                    Check-out<br/>API
+                  </button>
+                  <span
+                    className="pointage-time"
+                    style={{ color: colorForCheckOut(s.end_time, s.real_end_time) }}
+                  >
+                    {s.real_end_time
+                      ? `Réel ${fmtHHmm(s.real_end_time)}`
+                      : `Prévu ${fmtHHmm(s.end_time)}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
