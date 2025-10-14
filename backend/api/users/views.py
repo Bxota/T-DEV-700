@@ -14,7 +14,7 @@ from drf_spectacular.utils import (
 from api.permissions import HasTeamTagPermission
 from api.teams.service import TeamManager
 from api.shifts.service import ShiftManager
-from db_manager.serializers import UserSerializer
+from db_manager.serializers import RoleSerializer, UserSerializer
 
 @extend_schema_view(
     get=extend_schema(
@@ -183,7 +183,9 @@ class UserCollection(APIView):
         try:
             users = UserManager.get_all_users()
 
-            return Response({"users": users}, status=status.HTTP_200_OK)
+            users_serialized = UserManager.check_db_return(users, UserSerializer)
+
+            return Response({"users": users_serialized}, status=status.HTTP_200_OK)
         
         except APIException as e:
             return Response(e.detail, status=e.status_code)
@@ -250,12 +252,14 @@ class UserDetail(APIView):
         return [IsAuthenticated()]
     
     def get(self, request, user_id):
-        user = UserManager.get_user_by_id(user_id)
+        try:
+            user = UserManager.get_user_by_id(user_id)
+            
+            user_serialized = UserManager.check_db_return(user, UserSerializer)
 
-        if isinstance(user, dict) and "error" in user:
-            return Response(user, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"user": user}, status=status.HTTP_200_OK)
+            return Response({"user": user_serialized}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def put(self, request, user_id):
         try:
@@ -278,5 +282,33 @@ class UserDetail(APIView):
 
             return Response({"is_deleted": True}, status=status.HTTP_200_OK)
         
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+            
+@extend_schema_view(
+        get=extend_schema(
+        operation_id="user_role_detail",
+        tags=["Users"],
+        summary="list des roles",
+        description="Retourne la liste des rôles.",
+        responses={200: OpenApiTypes.OBJECT},
+    ),
+)
+class UserRoles(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        try:
+            roles = UserManager.get_roles()
+
+            roles_serialized = UserManager.check_db_return(roles, RoleSerializer)
+
+            return Response({"roles": roles_serialized}, status=status.HTTP_200_OK)
+            
         except APIException as e:
             return Response(e.detail, status=e.status_code)

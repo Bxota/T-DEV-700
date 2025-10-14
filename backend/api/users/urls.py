@@ -1,6 +1,6 @@
 from django.urls import path, include
 
-from api.users.views import UserCollection, UserDetail, UserTeamCollection, get_user_reports, get_user_clocks_summary
+from api.users.views import UserCollection, UserDetail, UserTeamCollection, get_user_reports, get_user_clocks_summary , UserRoles
 
 
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path("users/teams/<int:team_id>/", UserTeamCollection.as_view(), name="user"),
     path("users/<int:user_id>/reports", get_user_reports, name="user_reports"),
     path("users/<int:team_id>/clocks", get_user_clocks_summary, name="user_clocks"),
+    path("roles/", UserRoles.as_view(), name="user_role_detail"),
 ]
