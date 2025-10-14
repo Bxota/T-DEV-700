@@ -33,3 +33,7 @@ class UserManager(AbstractManager):
     @staticmethod
     def delete_user_from_team(user_id: int, team_id: int):
         return UserRepository.delete_user_from_team(user_id, team_id)
+    
+    @staticmethod
+    def get_roles():
+        return UserRepository.get_roles()
