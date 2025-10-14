@@ -5,6 +5,7 @@ import Manager from '../pages/Manager/Manager';
 import Profile from '../pages/Profile/Profile';
 import Team from '../pages/Team/Team';
 import Login from '../pages/Login/Login'
+import Users from '../pages/Users/Users';
 
 const AppRoutes = () => {
   return (
@@ -12,6 +13,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/manager" element={<Manager />} />
+      <Route path="/users" element={<Users />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/team" element={<Team />} />
       <Route path="/login" element={<Login />} />
