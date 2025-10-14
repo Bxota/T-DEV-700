@@ -1,79 +1,72 @@
-h1, p {
-  color: black;
-  display: flex;
-  justify-content: center;
-}
+/* Couleur par défaut lisible */
+.dashboard-root { color: #111; }
 
-/* --- Structure générale --- */
-.section {
-  margin-bottom: 40px;
-}
+/* Messages */
+.error-text { color: #d00; text-align: center; }
+.muted-text { color: #555; text-align: center; }
 
+/* Sections & titres */
+.section { margin-bottom: 40px; }
 .section-title {
   font-size: 22px;
   margin-bottom: 20px;
-  color: #333;
+  color: #111;
   border-bottom: 2px solid #007bff;
   display: inline-block;
   padding-bottom: 5px;
 }
+.bloc { margin-bottom: 30px; }
+.bloc-title { display: flex; justify-content: center; margin-bottom: 10px; }
+.bloc-title h3 { color: #111; font-size: 20px; }
 
-.bloc {
-  margin-bottom: 30px;
-}
-
-/* --- Titre "Matin / Après-midi" --- */
-.bloc-title {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.bloc-title h3 {
-  color: #333;
-  font-size: 20px;
-}
-
-/* --- Disposition des boutons --- */
-.button-row {
-  display: flex;
-  justify-content: center;
-  gap: 50px; /* espace entre les deux groupes In/Off */
-}
-
-.button-row > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* --- Boutons de pointage (même style qu'avant) --- */
+/* Boutons génériques */
 .pointage-button {
-  width: 100px;
-  padding: 15px 0;
+  width: 140px;
+  padding: 12px 0;
   cursor: pointer;
   border: none;
   background-color: #007bff;
-  color: white;
-  border-radius: 5px;
-  font-size: 18px;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 16px;
   transition: background-color 0.2s;
   text-align: center;
 }
+.pointage-button:hover { background-color: #0056b3; }
+.pointage-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.pointage-button:hover {
-  background-color: #0056b3;
+/* Affichage “Matin” : aligner horizontalement In / Out */
+.shift-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 64px;          /* espace entre In et Out */
+  flex-wrap: nowrap;
+}
+.shift-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;          /* espace entre le bouton et le libellé */
 }
 
-/* --- Texte à côté des boutons (span) --- */
+/* Libellés à côté des boutons */
 .pointage-time {
   font-weight: bold;
   font-size: 18px;
   display: inline-block;
-  width: 100px;         /* fixe pour éviter le décalage */
+  width: 120px;
   text-align: left;
-  font-family: monospace; /* pour aligner les chiffres */
-  margin-left: 10px;
-  color: black;          /* couleur par défaut */
+  font-family: monospace;
+  margin-left: 6px;
+  color: #111;        /* sera surchargé inline en vert/rouge */
   transition: color 0.2s ease;
+}
+
+/* Effet “grisé & inclicable” quand le shift du jour est terminé */
+.shift-block.completed {
+  opacity: 0.55;
+  filter: grayscale(15%);
+}
+.shift-block.completed .pointage-button {
+  pointer-events: none; /* ignore les clics même si non disabled */
 }

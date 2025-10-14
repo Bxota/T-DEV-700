@@ -1,0 +1,44 @@
+.users-list {
+ position: absolute;
+ z-index: 10;
+ top: 14vh;
+}
+
+.users-grid {
+    border-radius: 8px;
+ }
+
+.user-card {
+    display: flex;
+    align-items: center;
+    border-radius: 14px;
+    margin: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    background-color: rgba(67, 67, 232, 0.363);
+    justify-content: space-between;
+    width: 30vw;
+}
+
+.user-real-shift {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin: 0px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    background-color: rgba(91, 91, 218, 0.616);
+    justify-content: space-between;
+    width: 75%;
+}
+.no-users {
+    top: 40vh;
+    left: 20vw;
+    position: relative;
+    text-align: center;
+    margin-top: 16px;
+    color: #666;
+    font-size: larger;
+    font-style: italic;
+    }

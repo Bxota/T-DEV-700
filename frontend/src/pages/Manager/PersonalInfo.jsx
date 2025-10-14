@@ -53,8 +53,8 @@ export default function PersonalInfo() {
 
       {/* Section 2: Horaires de la journée */}
       <div className="daily-schedule">
-        <h3 className="section-title">Horaires</h3>
         <div className="schedule-date">{todaySchedule.date}</div>
+        <h3 className="section-title">Horaires</h3>
         
         <div className="work-hours">
           <div className="work-time">
@@ -69,18 +69,14 @@ export default function PersonalInfo() {
 
         <div className="schedule-events">
           <h4 className="events-title">Événements</h4>
-          {todaySchedule.breaks.map((breakTime, index) => (
-            <div key={index} className="schedule-item break">
-              <span className="event-time">{breakTime.start} - {breakTime.end}</span>
-              <span className="event-title">{breakTime.type}</span>
+            <div className="schedule-item break">
+              <span className="event-time">08:00 - En cours</span>
+              <span className="event-title">Matin</span>
             </div>
-          ))}
-          {todaySchedule.meetings.map((meeting, index) => (
-            <div key={index} className="schedule-item meeting">
-              <span className="event-time">{meeting.start} - {meeting.end}</span>
-              <span className="event-title">{meeting.title}</span>
+            <div className="schedule-item meeting">
+              <span className="event-time"></span>
+              <span className="event-title">Aprem</span>
             </div>
-          ))}
         </div>
       </div>
 
