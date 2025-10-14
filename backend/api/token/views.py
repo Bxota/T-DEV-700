@@ -1,3 +1,5 @@
+from rest_framework import serializers
+
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -5,7 +7,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiTypes, inline_serializer
+
+from db_manager.serializers import CustomTokenObtainPairSerializer, CustomTokenRefreshSerializer
 
 @extend_schema(
     operation_id="auth_whoami",
@@ -37,35 +41,47 @@ def whoami(request):
     tags=["Auth"],
     summary="Obtenir un jeton JWT",
     description=(
-        "Authentifie un utilisateur à partir de son nom d’utilisateur et mot de passe.\n\n"
-        "Retourne une paire de jetons : **access** (court terme) et **refresh** (long terme)."
+        "Authentifie un utilisateur (email + mot de passe) et renvoie une paire de jetons : "
+        "**access** (court terme) et **refresh** (long terme), avec leurs durées et dates d’expiration."
     ),
-    request={
-        "application/json": {
-            "username": "string",
-            "password": "string"
-        }
-    },
+    # Requête : ton User a USERNAME_FIELD = 'email'
+    request=inline_serializer(
+        name="TokenObtainPairRequest",
+        fields={
+            "email": serializers.EmailField(),
+            "password": serializers.CharField(write_only=True),
+        },
+    ),
     responses={
         200: OpenApiResponse(
+            response=inline_serializer(
+                name="TokenObtainPairResponse",
+                fields={
+                    "access": serializers.CharField(),
+                    "refresh": serializers.CharField(),
+                    "access_token_expires_at": serializers.DateTimeField(),
+                    "refresh_token_expires_at": serializers.DateTimeField(),
+                },
+            ),
             description="Paire de jetons JWT valide.",
             examples=[
                 OpenApiExample(
                     "Exemple de réponse",
                     value={
+                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1...",
                         "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1...",
-                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1..."
-                    }
+                        "access_token_expires_at": "2025-10-14T14:05:12+00:00",
+                        "refresh_token_expires_at": "2025-10-21T14:00:12+00:00",
+                    },
                 )
-            ]
+            ],
         ),
         401: OpenApiResponse(description="Identifiants invalides."),
     },
 )
 class CustomTokenObtainPairView(TokenObtainPairView):
     """JWT TokenObtainPair avec documentation améliorée"""
-    pass
-
+    serializer_class = CustomTokenObtainPairSerializer
 
 @extend_schema(
     operation_id="token_refresh",
@@ -76,19 +92,27 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     ),
     responses={
         200: OpenApiResponse(
-            description="Nouveau jeton d'accès valide.",
+            response=inline_serializer(
+                name="TokenObtainPairResponse",
+                fields={
+                    "access": serializers.CharField(),
+                    "access_token_expires_at": serializers.DateTimeField(),
+                },
+            ),
+            description="Paire de jetons JWT valide.",
             examples=[
                 OpenApiExample(
                     "Exemple de réponse",
                     value={
-                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1..."
-                    }
+                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1...",
+                        "access_token_expires_at": "2025-10-14T14:05:12+00:00",
+                    },
                 )
-            ]
+            ],
         ),
         401: OpenApiResponse(description="Refresh token expiré ou invalide."),
     },
 )
 class CustomTokenRefreshView(TokenRefreshView):
     """JWT TokenRefresh avec documentation améliorée"""
-    pass
+    serializer_class = CustomTokenRefreshSerializer
