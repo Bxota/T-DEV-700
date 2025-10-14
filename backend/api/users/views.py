@@ -14,7 +14,7 @@ from drf_spectacular.utils import (
 from api.permissions import HasTeamTagPermission
 from api.teams.service import TeamManager
 from api.shifts.service import ShiftManager
-from db_manager.serializers import UserSerializer
+from db_manager.serializers import RoleSerializer, UserSerializer
 
 @extend_schema_view(
     get=extend_schema(
@@ -282,5 +282,33 @@ class UserDetail(APIView):
 
             return Response({"is_deleted": True}, status=status.HTTP_200_OK)
         
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+            
+@extend_schema_view(
+        get=extend_schema(
+        operation_id="user_role_detail",
+        tags=["Users"],
+        summary="list des roles",
+        description="Retourne la liste des rôles.",
+        responses={200: OpenApiTypes.OBJECT},
+    ),
+)
+class UserRoles(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated(), HasTeamTagPermission()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        try:
+            roles = UserManager.get_roles()
+
+            roles_serialized = UserManager.check_db_return(roles, RoleSerializer)
+
+            return Response({"roles": roles_serialized}, status=status.HTTP_200_OK)
+            
         except APIException as e:
             return Response(e.detail, status=e.status_code)

@@ -1,4 +1,4 @@
-from db_manager.models import Teams, Users
+from db_manager.models import Roles, Teams, Users
 from rest_framework.exceptions import APIException
 
 class UserRepository:        
@@ -99,5 +99,12 @@ class UserRepository:
             user.team_id = None
             user.save()
             return True
+        except Exception as e:
+            raise APIException({"error": "internal server error.", "status_code": 500})
+        
+    @staticmethod
+    def get_roles():
+        try:
+            return Roles.objects.all()
         except Exception as e:
             raise APIException({"error": "internal server error.", "status_code": 500})
