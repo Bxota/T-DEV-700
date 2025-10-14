@@ -47,10 +47,10 @@ class UserRepository:
     @staticmethod
     def get_user_by_id(user_id):
         try:
-            user = Users.objects.filter(id=user_id).values('id', 'email', 'first_name', 'last_name', 'team_id', 'phone_number', 'role_id').first()
-            if not user:
-                return {"error": "User not found"}
+            user = Users.objects.get(id=user_id)
             return user
+        except Users.DoesNotExist:
+            return {"error": "User not found"}
         except Exception as e:
             return {"error": str(e)}
 
