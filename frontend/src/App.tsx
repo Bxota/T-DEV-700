@@ -1,6 +1,6 @@
 import { BrowserRouter } from 'react-router-dom';
 // @ts-ignore
-import Sidebar from './components/layout/Sidbar';
+import Sidebar from './components/layout/Sidebar';
 // @ts-ignore
 import ImgLogin from './components/layout/ImgLogin';
 // @ts-ignore

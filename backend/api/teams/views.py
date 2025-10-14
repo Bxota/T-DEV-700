@@ -8,7 +8,8 @@ from rest_framework.exceptions import APIException
 from db_manager.models import Teams
 
 from api.teams.service import TeamManager
-from db_manager.repositories.team_repository import TeamRepository
+from api.users.service import UserManager
+from api.shifts.service import ShiftManager
 from db_manager.serializers import TeamSerializer
 
 from drf_spectacular.utils import (

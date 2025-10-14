@@ -16,6 +16,11 @@ const Sidebar = () => {
       name: 'Équipe',
       icon: '👥'
     },
+        {
+      path: '/users',
+      name: 'Utilisateurs',
+      icon: '🧑‍💼'
+    },
     {
       path: '/manager',
       name: 'Gestionnaire',

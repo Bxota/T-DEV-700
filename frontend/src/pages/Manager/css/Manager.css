@@ -650,6 +650,7 @@ body {
 }
 
 .hour-header {
+  color: #495057;
   flex: 1;
   box-sizing: border-box;
   padding: 8px;
