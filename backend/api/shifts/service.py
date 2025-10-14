@@ -10,8 +10,13 @@ class ShiftManager(AbstractManager):
     def list_shifts():
         return ShiftRepository.get_shifts()
     
+    @staticmethod
     def list_shifts_by_user_id(user_id: int):
         return ShiftRepository.get_shifts_by_user_id(user_id=user_id)
+    
+    @staticmethod
+    def list_shifts_by_team_id(team_id: int):
+        return ShiftRepository.get_shifts_by_team_id(team_id=team_id)
 
     @staticmethod
     def create_shift(user: Users, start_time: datetime, end_time: datetime):

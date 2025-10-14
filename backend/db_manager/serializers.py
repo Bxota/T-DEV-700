@@ -10,8 +10,8 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model =Teams
         fields = ("id", "name")
-        
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ("id", "first_name", "last_name", "email", "phone_number", "team", "role")
+        fields = ("id", "email", "first_name", "last_name", "phone_number", "role_id", "team_id")

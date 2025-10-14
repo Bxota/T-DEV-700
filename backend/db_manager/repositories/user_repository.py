@@ -5,7 +5,7 @@ class UserRepository:
     @staticmethod
     def get_users_by_team_id(team_id):
         try:
-            return Users.objects.filter(team_id=team_id).order_by('id')
+            return list(Users.objects.filter(team_id=team_id).order_by('id'))
         except Exception as e:
             raise APIException({"error": "internal server error.", "status_code": 500})
         
