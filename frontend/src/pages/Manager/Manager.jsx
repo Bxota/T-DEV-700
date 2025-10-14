@@ -109,7 +109,7 @@ export default function Manager() {
 
       {/* Panneau des statistiques */}
       <div className={`stats-panel ${showStats ? 'visible' : 'hidden'}`}>
-        <TeamStats />
+        <TeamStats selectedTeam={selectedTeam}/>
       </div>
     </div>
   );

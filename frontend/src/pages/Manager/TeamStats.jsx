@@ -1,12 +1,44 @@
-export default function TeamStats() {
-  const teamData = { 
-    team: "Mon Équipe", 
-    performance: 92, 
-    tasks: 45, 
-    absenceRate: 7,
-    members: 14,
-    completedTasks: 41
+import React, {useState, useEffect} from "react";
+import { getAuthHeaders } from "../../api/auth";
+
+export default function TeamStats({ selectedTeam }) {
+
+  const [teamData, setTeamData] = useState({});
+  
+  const fetchTeamReports = async (selectedTeam) => {
+    if (!selectedTeam) return;
+    console.log("selectedTeam ?", selectedTeam);
+    try {
+      const response = await fetch(`/api/teams/${selectedTeam}/reports/`,
+        { headers: getAuthHeaders() }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setTeamData(data);
+        console.log("data ?", data);
+        // Pour les tests, on peut simuler des données ici
+        // setTeamData({
+        //       "members": 3,
+        //       "total_shifts": 10,
+        //       "total_with_checkin": 8,
+        //       "lateness_count": 2,
+        //       "lateness_rate": 25.0,
+        //       "absences_count": 1,
+        //       "absences_rate": 10.0,
+        //       "total_worked_minutes": 177,
+        //       "team_name": "test2",
+        //       "team_id": 2
+        //   });
+
+      }
+    } catch (error) {
+      console.error('Error fetching team reports:', error);
+    }
   };
+  useEffect(() => {
+
+    fetchTeamReports(selectedTeam);
+  }, [selectedTeam]);
 
   // Composant pour le cercle de progression
   const CircleProgress = ({ percentage, size = 80, strokeWidth = 6 }) => {
@@ -81,7 +113,7 @@ export default function TeamStats() {
     <>
         {/* En-tête de l'équipe */}
         <div className="team-header-single">
-          <h3 className="team-name-single">{teamData.team}</h3>
+          <h3 className="team-name-single">{teamData.team_name}</h3>
           <div className="team-members-badge">{teamData.members} membres</div>
         </div>
 
@@ -92,10 +124,10 @@ export default function TeamStats() {
           <div className="metric-card">
             <div className="metric-header">
               <h4>Taux d'absence</h4>
-              <span className="metric-value">{teamData.absenceRate}%</span>
+              <span className="metric-value">{teamData.absences_rate}%</span>
             </div>
             <div className="absence-display">
-              <CircleProgress percentage={teamData.absenceRate} />
+              <CircleProgress percentage={teamData.absences_rate} />
             </div>
           </div>
 
@@ -103,14 +135,14 @@ export default function TeamStats() {
           <div className="metric-card">
             <div className="metric-header">
               <h4>Nombre d'heures travaillées</h4>
-            <span className="metric-value">{teamData.performance}h</span>
+            <span className="metric-value">{teamData.total_worked_minutes/60}h</span>
             </div>
             <div className="metric-header">
               <h4>quantité de retard</h4>
-              <span className="metric-value">{teamData.completedTasks}/{teamData.tasks}</span>
+              <span className="metric-value"> {teamData.lateness_count ? `${teamData.lateness_count} / ${teamData.lateness_count * 100 / teamData.lateness_rate}` : 0}</span>
             </div>
             <ProgressBar 
-              percentage={taskCompletionRate}
+              percentage={teamData.lateness_rate}
               color="#17a2b8"
               label="Taux de retard"
               />

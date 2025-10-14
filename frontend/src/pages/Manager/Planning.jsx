@@ -38,7 +38,7 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
 
       try {
         console.log('Fetching users for team:', selectedTeam);
-        const response = await fetch(`/api/users/teams/${selectedTeam}`, {
+        const response = await fetch(`/api/users/teams/${selectedTeam}/`, {
           method: 'GET',
           headers: getAuthHeaders(),
         });
@@ -56,57 +56,7 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
           // Sélectionner automatiquement le premier user si disponible
           if (usersList.length > 0) {
             setSelectedUserId(usersList[0].id);
-          } else {
-            // En cas d'erreur, utiliser des données de test
-            console.warn('API users indisponible, utilisation des données de test');
-            const sampleUsers = [
-              {
-                id: 1,
-                email: "john.doe@example.com",
-                first_name: "John",
-                last_name: "Doe",
-                name: "John Doe",
-                team_id: selectedTeam,
-                phone_number: "123-456-7890",
-                role_id: 1
-              },
-              {
-                id: 2,
-                email: "jane.smith@example.com",
-                first_name: "Jane",
-                last_name: "Smith",
-                name: "Jane Smith",
-                team_id: selectedTeam,
-                phone_number: "098-765-4321",
-                role_id: 2
-              },
-              {
-                id: 3,
-                email: "alice.johnson@example.com",
-                first_name: "Alice",
-                last_name: "Johnson",
-                name: "Alice Johnson",
-                team_id: selectedTeam,
-                phone_number: "555-123-4567",
-                role_id: 1
-              },
-              {
-                id: 4,
-                email: "bob.brown@example.com",
-                first_name: "Bob",
-                last_name: "Brown",
-                name: "Bob Brown",
-                team_id: selectedTeam,
-                phone_number: "555-987-6543",
-                role_id: 3
-              }
-            ];
-            
-            setUsers(sampleUsers);
-            if (sampleUsers.length > 0) {
-              setSelectedUserId(sampleUsers[0].id);
-            }
-          }
+          } 
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des users:', error);
