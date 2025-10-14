@@ -55,7 +55,7 @@ def get_team_reports(request, team_id):
         tags=["Teams"],
         description="Crée une nouvelle équipe et la retourne.",
         request={"application/json": {"name": "string"}},
-        responses={201: None},
+        responses={201: TeamSerializer},
     ),
 )
 class TeamCollection(APIView):
@@ -95,7 +95,7 @@ class TeamCollection(APIView):
 @extend_schema_view(
     get=extend_schema(
         operation_id="team_retrieve",
-        summary="Obtenir une équipe",
+        summary="Obtenir une équipe par son id",
         tags=["Teams"],
         description="Détails d'une équipe par identifiant.",
         parameters=[OpenApiParameter("team_id", int, OpenApiParameter.PATH)],

@@ -54,10 +54,10 @@ def get_user_clocks_summary():
     get=extend_schema(
         operation_id="team_user_list",
         tags=["Users"],
-        summary="Lister les utilisateurs d’une équipe",
-        description="Retourne la liste des utilisateurs rattachés à l’équipe.",
+        summary="Lister les utilisateurs d'une équipe",
+        description="Retourne la liste des utilisateurs rattachés à l'équipe.",
         parameters=[
-            OpenApiParameter("team_id", int, OpenApiParameter.PATH, description="Identifiant de l’équipe"),
+            OpenApiParameter("team_id", int, OpenApiParameter.PATH, description="Identifiant de l'équipe"),
         ],
         responses={200: OpenApiTypes.OBJECT},
     ),
@@ -65,12 +65,23 @@ def get_user_clocks_summary():
         operation_id="team_user_create",
         tags=["Users"],
         summary="Ajouter un utilisateur à une équipe",
-        description="Crée/associe un utilisateur au sein de l’équipe.",
+        description="Crée/associe un utilisateur au sein de l'équipe.",
         parameters=[
-            OpenApiParameter("team_id", int, OpenApiParameter.PATH, description="Identifiant de l’équipe"),
+            OpenApiParameter("team_id", int, OpenApiParameter.PATH, description="Identifiant de l'équipe"),
         ],
         request={"application/json": {"user_id": "int", "team_id": "int"}},
         responses={201: OpenApiTypes.OBJECT},
+    ),
+    delete=extend_schema(
+        operation_id="team_user_delete",
+        tags=["Users"],
+        summary="Supprimer un utilisateur d'une équipe",
+        description="Supprime/dissocie un utilisateur de l'équipe.",
+        parameters=[
+            OpenApiParameter("team_id", int, OpenApiParameter.PATH, description="Identifiant de l'équipe"),
+        ],
+        request={"application/json": {"user_id": "int", "team_id": "int"}},
+        responses={200: OpenApiTypes.OBJECT},
     ),
 )
 class UserTeamCollection(APIView):
@@ -127,8 +138,8 @@ class UserTeamCollection(APIView):
     get=extend_schema(
         operation_id="user_retrieve",
         tags=["Users"],
-        summary="Retourne les utilisateur",
-        description="Retourne les utilisateurs",
+        summary="Retourne tous les utilisateurs",
+        description="Retourne tous les utilisateurs",
         parameters=[],
         responses={200: OpenApiTypes.OBJECT},
     ),
@@ -148,17 +159,8 @@ class UserTeamCollection(APIView):
         parameters=[
             OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="Identifiant de l'utilisateur"),
         ],
+        request={"application/json": {"last_name": "string", "first_name": "string", "email": "string", "phone_number": "string", "role_id": "int", "password": "string", "team_id": "int"}},   
         responses={200: OpenApiTypes.OBJECT},
-    ),
-    delete=extend_schema(
-        operation_id="team_user_delete",
-        tags=["Users"],
-        summary="Supprimer un utilisateur d’une équipe",
-        description="Supprime/dissocie un utilisateur de l’équipe.",
-        parameters=[
-            OpenApiParameter("user_id", int, OpenApiParameter.PATH, description="Identifiant de l’utilisateur"),
-        ],
-        responses={204: None},
     ),
 )
 class UserCollection(APIView):
