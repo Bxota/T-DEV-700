@@ -1,3 +1,4 @@
+from db_manager.repositories.shifts_repository import ShiftRepository
 from rest_framework.exceptions import ValidationError
 from django.db.models.query import QuerySet
 
@@ -55,3 +56,16 @@ class AbstractManager:
         for key in kwargs.keys():
             if key not in valid_fields:
                 raise ValidationError({"error": f"{key} is not a valid field of {className.__name__.lower()}."})
+            
+    def check_valid_shift_interval(start_time, end_time, user_id):
+        if start_time >= end_time:
+            raise ValidationError({"error": "start_time must be before end_time."})
+            
+        for shift in ShiftRepository.get_shifts_by_user_id(user_id):
+            if (start_time < shift.end_time and end_time > shift.start_time):
+                raise ValidationError({"error": "Shift time interval overlaps with an existing shift."})
+            
+    def check_is_user_shift(shift_id, user_id):
+        if not ShiftRepository.get_shift_by_id(shift_id).user.id == user_id:
+            raise ValidationError({"error": "This shift does not belong to this user."})
+

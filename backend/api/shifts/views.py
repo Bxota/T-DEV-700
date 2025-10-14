@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,7 +7,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from api.shifts.service import ShiftManager
-from db_manager.models import Users, Shifts
+from db_manager.models import Teams, Users, Shifts
 from db_manager.serializers import ShiftSerializer
 
 
@@ -88,7 +89,7 @@ def user_shift_check_out(request, user_id, shift_id):
             400: {"error": "..."}
         }
     ),
-    post=extend_schema(
+    put=extend_schema(
         operation_id="user_shift_update",
         tags=["Shifts - Users"],
         summary="Mettre à jour un shift d'un utilisateur",
@@ -105,7 +106,7 @@ class UserShiftDetail(APIView):
     def get_permissions(self):
         if self.request.method == "GET":
             return [IsAuthenticated()]
-        if self.request.method == "PATCH":
+        if self.request.method == "PUT":
             return [IsAuthenticated(), HasTeamTagPermission()]
         if self.request.method == "DELETE":
             return [IsAuthenticated(), HasTeamTagPermission()]
@@ -113,77 +114,56 @@ class UserShiftDetail(APIView):
     
     def get(self, request, user_id, shift_id):
         try:
-            user = Users.objects.get(pk=user_id)
-        except Users.DoesNotExist:
-            return Response(
-                {"error": "User not found."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        shift = ShiftManager.get_shift_by_id(shift_id=shift_id)
-        
-        if isinstance(shift, dict) and "error" in shift:
-            return Response(shift, status=status.HTTP_400_BAD_REQUEST)
-        
-        if shift.user.id != user_id:
-            return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        data = ShiftSerializer(shift).data
-        return Response({"shift": data}, status=status.HTTP_200_OK)
-        
+            ShiftManager.check_db_element_exist(Users, user_id)
+            ShiftManager.check_db_element_exist(Shifts, shift_id)
 
-    def post(self, request, user_id, shift_id):
-        start_time = request.data.get("start_time")
-        end_time = request.data.get("end_time")
-        if not start_time:
-            return Response(
-                {"error": "start_time field is required."},
-                status=status.HTTP_400_BAD_REQUEST
+            ShiftManager.check_is_user_shift(shift_id, user_id)
+
+            shift = ShiftManager.get_shift_by_id(shift_id=shift_id)
+
+            shift_serialized = ShiftSerializer(shift).data
+            return Response({"shift": shift_serialized}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+
+    def put(self, request, user_id, shift_id):
+        try:
+            ShiftManager.check_db_element_exist(Users, user_id)
+            ShiftManager.check_db_element_exist(Shifts, shift_id)
+
+            ShiftManager.check_is_user_shift(shift_id, user_id)
+
+            ShiftManager.check_body_element(request, "start_time")
+            ShiftManager.check_body_element(request, "end_time")
+
+            ShiftManager.check_valid_shift_interval(
+                start_time=datetime.fromisoformat(request.data.get("start_time").replace("Z", "+00:00")),
+                end_time=datetime.fromisoformat(request.data.get("end_time").replace("Z", "+00:00")),
+                user_id=user_id
             )
-        if not end_time:
-            return Response(
-                {"error": "end_time field is required."},
-                status=status.HTTP_400_BAD_REQUEST
+
+            ShiftManager.update_shift(
+                shift_id=shift_id,
+                start_time=request.data.get("start_time"),
+                end_time=request.data.get("end_time")
             )
             
-        try:
-            user = Users.objects.get(pk=user_id)
-        except Users.DoesNotExist:
-            return Response(
-                {"error": "User not found."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        shift = ShiftManager.update_shift(shift_id=shift_id, start_time=start_time, end_time=end_time)
-
-        if isinstance(shift, dict) and "error" in shift:
-            return Response(shift, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            {"is_updated": True, "id": shift.id},
-            status=status.HTTP_200_OK
-        )
+            return Response({"is_updated": True}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
     
     def delete(self, request, user_id, shift_id):
         try:
-            user = Users.objects.get(pk=user_id)
-        except Users.DoesNotExist:
-            return Response({"error": "Shift not found."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            shift = Shifts.objects.get(pk=shift_id)
-        except Shifts.DoesNotExist:
-            return Response({"error": "Shift not found.."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if shift.user.id != user.id:
-            return Response({"error": "User and Shift not linked."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        result = ShiftManager.delete_shift(shift_id=shift_id)
-        
-        if isinstance(result, dict) and "error" in result:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            ShiftManager.check_db_element_exist(Users, user_id)
+            ShiftManager.check_db_element_exist(Shifts, shift_id)
 
-        return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+            ShiftManager.check_is_user_shift(shift_id, user_id)
+
+            ShiftManager.delete_shift(shift_id=shift_id)
+
+            return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
 @extend_schema_view(
     get=extend_schema(
@@ -212,42 +192,40 @@ class UserShiftCollection(APIView):
         return [IsAuthenticated()]
 
     def get(self, request, user_id):
-        shifts = ShiftManager.list_shifts_by_user_id(user_id)
-        shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
-        
-        return Response({"shifts": shifts_serialized}, status=status.HTTP_200_OK)
+        try:
+            ShiftManager.check_db_element_exist(Users, user_id)
+
+            shifts = ShiftManager.list_shifts_by_user_id(user_id)
+            shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
+
+            return Response({"shifts": shifts_serialized}, status=status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def post(self, request, user_id):
-        start_time = request.data.get("start_time")
-        end_time = request.data.get("end_time")
-        if not start_time:
-            return Response(
-                {"error": "start_time field is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if not end_time:
-            return Response(
-                {"error": "end_time field is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
         try:
-            user = Users.objects.get(pk=user_id)
-        except Users.DoesNotExist:
-            return Response(
-                {"error": "User not found."},
-                status=status.HTTP_400_BAD_REQUEST
+            ShiftManager.check_db_element_exist(Users, user_id)
+
+            ShiftManager.check_body_element(request, "start_time")
+            ShiftManager.check_body_element(request, "end_time")
+
+            ShiftManager.check_valid_shift_interval(
+                start_time=datetime.fromisoformat(request.data.get("start_time").replace("Z", "+00:00")),
+                end_time=datetime.fromisoformat(request.data.get("end_time").replace("Z", "+00:00")),
+                user_id=user_id
             )
 
-        shift = ShiftManager.create_shift(user=user, start_time=start_time, end_time=end_time)
+            shift = ShiftManager.create_shift(
+                user=Users.objects.get(pk=user_id),
+                start_time=request.data.get("start_time"),
+                end_time=request.data.get("end_time")
+            )
 
-        if isinstance(shift, dict) and "error" in shift:
-            return Response(shift, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            {"is_created": True, "id": shift.id},
-            status=status.HTTP_201_CREATED
-        )
+            return Response({"is_created": True, "id": shift.id}, status=status.HTTP_201_CREATED)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
 @extend_schema_view(
     get=extend_schema(
@@ -257,28 +235,23 @@ class UserShiftCollection(APIView):
         description="Retourne la liste des shifts (portée équipe).",
         responses={200: OpenApiTypes.OBJECT},
     ),
-    post=extend_schema(
-        operation_id="team_shift_create",
-        tags=["Shifts - Teams"],
-        summary="Créer un shift (équipe)",
-        description="Crée un nouveau shift au niveau de l'équipe.",
-        responses={201: OpenApiTypes.OBJECT},
-    ),
 )
 class TeamShiftCollection(APIView):
     permission_classes = [IsAuthenticated, HasTeamTagPermission]
 
     def get_permissions(self):
         if self.request.method == "GET":
-            return [IsAuthenticated()]
-        if self.request.method == "PATCH":
             return [IsAuthenticated(), HasTeamTagPermission()]
-        if self.request.method == "DELETE":
-            return [IsAuthenticated(), HasTeamTagPermission()]
-        return [IsAuthenticated()]
 
-    def get(self, request):
-        return Response([])
+    def get(self, request, team_id):
+        try:
+            ShiftManager.check_db_element_exist(Teams, team_id)
 
-    def post(self, request):
-        return Response({"ok": True, "user": request.user.username})
+            shifts = ShiftManager.list_shifts_by_team_id(team_id)
+            shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
+
+            return Response({"shifts": shifts_serialized}, status=status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
+        
