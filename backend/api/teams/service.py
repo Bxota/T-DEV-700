@@ -3,8 +3,10 @@ from db_manager.repositories.team_repository import TeamRepository
 
 from django.utils.timezone import now
 from datetime import timedelta
-
-from django.db.models import F, Shifts, Count, Q, Sum, DurationField, ExpressionWrapper
+from db_manager.models import Shifts    
+        
+from django.db.models import Count, Q, F, Sum, DurationField, ExpressionWrapper
+from django.utils.timezone import now
 
 class TeamManager(AbstractManager):
     @staticmethod
