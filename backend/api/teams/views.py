@@ -30,16 +30,14 @@ from api.permissions import HasTeamTagPermission
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
 def get_team_reports(request, team_id):
+    team = TeamManager.get_team_by_id(team_id)
     members = UserManager.get_users_by_team_id(team_id)
     
-    report = []
-    for member in members:
-        member_shifts = ShiftManager.list_shifts_by_user_id(member.id)
-        user_kpis = TeamManager.generate_user_kpi_report(member, member_shifts)
-        report.append(user_kpis)
-    report.append({"members": members.count()})
+    team_report = TeamManager.generate_team_kpi_report(members)
+    team_report["team_name"] = team.name
+    team_report["team_id"] = team.id
     
-    return Response(report, status=status.HTTP_200_OK)
+    return Response(team_report, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     get=extend_schema(

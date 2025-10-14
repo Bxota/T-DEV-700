@@ -1,8 +1,6 @@
 from db_manager.repositories.shifts_repository import ShiftRepository
 from db_manager.models import Users
 
-from rest_framework.exceptions import ValidationError
-
 from datetime import datetime
 
 from ..service import AbstractManager

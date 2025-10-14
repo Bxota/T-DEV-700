@@ -12,7 +12,8 @@ from drf_spectacular.utils import (
 )
 
 from api.permissions import HasTeamTagPermission
-
+from api.teams.service import TeamManager
+from api.shifts.service import ShiftManager
 from db_manager.serializers import UserSerializer
 
 @extend_schema_view(
@@ -26,14 +27,13 @@ from db_manager.serializers import UserSerializer
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_user_reports():
-    """
-    Rapport possibles : 
-    - calculer le taux de retard de l'employé
-    - voir son nombre d'absences
-    - indiquer le nombre d'heures travaillées
-    """
-    return Response({})
+def get_user_reports(request, user_id):
+    user = UserManager.get_user_by_id(user_id)
+    
+    user_shifts = ShiftManager.list_shifts_by_user_id(user.id)
+    user_kpis = TeamManager.generate_user_kpi_report(user, user_shifts)
+    
+    return Response(user_kpis, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     get=extend_schema(
