@@ -3,9 +3,9 @@ from rest_framework.exceptions import APIException
 
 class UserRepository:        
     @staticmethod
-    def get_users_by_team_id(team_id):
+    def get_users_by_team_id(team_id: int):
         try:
-            return list(Users.objects.filter(team_id=team_id).order_by('id'))
+            return Users.objects.filter(team_id=team_id).select_related("role", "team")
         except Exception as e:
             raise APIException({"error": "internal server error.", "status_code": 500})
         
@@ -79,7 +79,7 @@ class UserRepository:
     @staticmethod
     def get_all_users():
         try:
-            return list(Users.objects.all().order_by('id').values('id', 'email', 'first_name', 'last_name', 'team_id', 'phone_number', 'role_id'))
+            return Users.objects.all().select_related("role", "team")
         except Exception as e:
             raise APIException({"error": "internal server error.", "status_code": 500})
         

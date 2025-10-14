@@ -183,7 +183,9 @@ class UserCollection(APIView):
         try:
             users = UserManager.get_all_users()
 
-            return Response({"users": users}, status=status.HTTP_200_OK)
+            users_serialized = UserManager.check_db_return(users, UserSerializer)
+
+            return Response({"users": users_serialized}, status=status.HTTP_200_OK)
         
         except APIException as e:
             return Response(e.detail, status=e.status_code)
@@ -250,12 +252,14 @@ class UserDetail(APIView):
         return [IsAuthenticated()]
     
     def get(self, request, user_id):
-        user = UserManager.get_user_by_id(user_id)
+        try:
+            user = UserManager.get_user_by_id(user_id)
+            
+            user_serialized = UserManager.check_db_return(user, UserSerializer)
 
-        if isinstance(user, dict) and "error" in user:
-            return Response(user, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"user": user}, status=status.HTTP_200_OK)
+            return Response({"user": user_serialized}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def put(self, request, user_id):
         try:
