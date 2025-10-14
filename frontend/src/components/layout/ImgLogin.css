@@ -16,7 +16,7 @@
   font-weight: bold;
   font-size: 18px;
   color: white;
-  background-color: #3498db; /* couleur par défaut pour les initiales */
+  background-color: #3498db; /* fallback si jamais pas d'initiales */
 }
 
 .image-button img {
@@ -30,12 +30,15 @@
   transform: scale(1.1);
 }
 
+/* 🔹 même rendu que l'avatar du profil */
 .image-button.initials {
-  background-color: #3498db; /* couleur pour les initiales */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
 }
 
 .image-button.avatar {
   background-size: cover;
   background-position: center;
   background-color: transparent; /* supprime la couleur de fond si image */
+  background-repeat: no-repeat;
 }
