@@ -13,6 +13,8 @@ from drf_spectacular.utils import (
 
 from api.permissions import HasTeamTagPermission
 
+from db_manager.serializers import UserSerializer
+
 @extend_schema_view(
     get=extend_schema(
         operation_id="user_reports",
@@ -99,8 +101,10 @@ class UserTeamCollection(APIView):
             UserManager.check_db_element_exist(Teams, team_id)
 
             users = UserManager.get_users_by_team_id(team_id)
+            
+            users_serialized = UserManager.check_db_return(users, UserSerializer)
 
-            return Response({"users": users}, status=status.HTTP_200_OK)
+            return Response({"users": users_serialized}, status=status.HTTP_200_OK)
         
         except APIException as e:
             return Response(e.detail, status=e.status_code)
