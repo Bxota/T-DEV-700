@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from django.db.models import F
 
-class TeamManager:
+class TeamManager(AbstractManager):
     @staticmethod
     def list_teams():
         return TeamRepository.get_teams()

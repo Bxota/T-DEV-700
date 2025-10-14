@@ -1,12 +1,15 @@
 from rest_framework.exceptions import ValidationError
+from django.db.models.query import QuerySet
 
 class AbstractManager:
     def check_db_return(element, serializer):
         if isinstance(element, dict) and "error" in element:
             raise ValidationError(element)
         
-        else:
+        if isinstance(element, QuerySet):
             return serializer(element, many=True).data
+        else:
+            return serializer(element).data
     
     def check_body_element(request, name: str):
         element = request.data.get(name)
