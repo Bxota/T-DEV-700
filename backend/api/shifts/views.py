@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from api.shifts.service import ShiftManager
 from db_manager.models import Users, Shifts
@@ -15,25 +16,87 @@ from drf_spectacular.utils import (
 
 from api.permissions import HasTeamTagPermission
 
+@extend_schema(
+    operation_id="user_shift_check_in",
+    tags=["Shifts - Users"],
+    summary="Check in pour le shift sélectionné",
+    description="Check in pour le shift sélectionné",
+    responses={
+        200: ShiftSerializer,
+        400: {"error": "..."}
+    }
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def user_shift_check_in(request, user_id, shift_id):
+    try:
+        start_time = ShiftManager.check_body_element(request, "start_time")
+        user: Users = ShiftManager.check_db_element_exist(Users, user_id)
+        shift: Shifts = ShiftManager.check_db_element_exist(Shifts, shift_id)
+        
+        ShiftManager.check_is_equal(shift, shift.user.id, user, user.id)
+        ShiftManager.check_is_not_have_element(shift, "real_start_time")
+        
+        shift = ShiftManager.check_in(shift_id=shift_id, start_time=start_time)
+
+        shift_serialized = ShiftManager.check_db_return(shift, ShiftSerializer)
+        return Response({"is_check_in": True, "shift": shift_serialized}, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
+
+@extend_schema(
+    operation_id="user_shift_check_out",
+    tags=["Shifts - Users"],
+    summary="Check out pour le shift sélectionné",
+    description="Check out pour le shift sélectionné",
+    responses={
+        200: ShiftSerializer,
+        400: {"error": "..."}
+    },
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def user_shift_check_out(request, user_id, shift_id):
+    try:
+        end_time = ShiftManager.check_body_element(request, 'end_time')
+        user: Users = ShiftManager.check_db_element_exist(Users, user_id)
+        shift: Shifts = ShiftManager.check_db_element_exist(Shifts, shift_id)
+        
+        ShiftManager.check_is_equal(shift, shift.user.id, user, user.id)
+        ShiftManager.check_is_not_have_element(shift, "real_end_time")
+        ShiftManager.check_is_have_element(shift, "real_start_time")
+        
+        shift = ShiftManager.check_out(shift_id=shift_id, end_time=end_time)
+        
+        shift_serialized = ShiftManager.check_db_return(shift, ShiftSerializer)
+        return Response({"is_check_out": True, "shift": shift_serialized}, status=status.HTTP_200_OK)
+        
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
+
 @extend_schema_view(
     get=extend_schema(
         operation_id="user_shift_retrieve",
         tags=["Shifts - Users"],
-        summary="Obtenir un shift d’un utilisateur",
+        summary="Obtenir un shift d'un utilisateur",
         parameters=[
             OpenApiParameter("user_id", int, OpenApiParameter.PATH),
             OpenApiParameter("shift_id", int, OpenApiParameter.PATH),
         ],
+        responses={
+            200: ShiftSerializer,
+            400: {"error": "..."}
+        }
     ),
     post=extend_schema(
         operation_id="user_shift_update",
         tags=["Shifts - Users"],
-        summary="Mettre à jour un shift d’un utilisateur",
+        summary="Mettre à jour un shift d'un utilisateur",
     ),
     delete=extend_schema(
         operation_id="user_shift_delete",
         tags=["Shifts - Users"],
-        summary="Supprimer un shift d’un utilisateur",
+        summary="Supprimer un shift d'un utilisateur",
     ),
 )
 class UserShiftDetail(APIView):
@@ -150,9 +213,9 @@ class UserShiftCollection(APIView):
 
     def get(self, request, user_id):
         shifts = ShiftManager.list_shifts_by_user_id(user_id)
-        if isinstance(shifts, dict) and "error" in shifts:
-            return Response(shifts, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"shifts": shifts})
+        shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
+        
+        return Response({"shifts": shifts_serialized}, status=status.HTTP_200_OK)
 
     def post(self, request, user_id):
         start_time = request.data.get("start_time")
@@ -198,7 +261,7 @@ class UserShiftCollection(APIView):
         operation_id="team_shift_create",
         tags=["Shifts - Teams"],
         summary="Créer un shift (équipe)",
-        description="Crée un nouveau shift au niveau de l’équipe.",
+        description="Crée un nouveau shift au niveau de l'équipe.",
         responses={201: OpenApiTypes.OBJECT},
     ),
 )

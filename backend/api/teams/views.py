@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import APIException
+from db_manager.models import Teams
 
 from api.teams.service import TeamManager
 from db_manager.repositories.team_repository import TeamRepository
@@ -27,14 +29,14 @@ from api.permissions import HasTeamTagPermission
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, HasTeamTagPermission])
 def get_team_reports(request, team_id):
-    """
-    Rapport possibles : 
-    - calculer le taux de retard de l'équipe
-    - voir le nombre d'absences
-    - indiquer le nombre d'heures travaillées
-    - indiquer le nombre d'employés dans l'équipe
-    """
-    return Response({})
+    team = TeamManager.get_team_by_id(team_id)
+    members = UserManager.get_users_by_team_id(team_id)
+    
+    team_report = TeamManager.generate_team_kpi_report(members)
+    team_report["team_name"] = team.name
+    team_report["team_id"] = team.id
+    
+    return Response(team_report, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     get=extend_schema(
@@ -50,7 +52,7 @@ def get_team_reports(request, team_id):
         tags=["Teams"],
         description="Crée une nouvelle équipe et la retourne.",
         request={"application/json": {"name": "string"}},
-        responses={201: None},
+        responses={201: TeamSerializer},
     ),
 )
 class TeamCollection(APIView):
@@ -64,33 +66,33 @@ class TeamCollection(APIView):
         return super().get_permissions()
 
     def get(self, request):
-        teams = TeamManager.list_teams()
-        if isinstance(teams, dict) and "error" in teams:
-            return Response(teams, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"teams": teams})
-        teams = TeamRepository.get_teams()
-        return Response(teams)
+        try:
+            teams = TeamManager.list_teams()
+
+            return Response({"teams": teams}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def post(self, request):
-        name = request.data.get("name")
-        if not name:
-            return Response(
-                {"error": "Name field is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        try:
+            name = TeamManager.check_body_element(request, "name")
 
-        team = TeamManager.create_team(name)
+            TeamManager.check_if_db_element_with_name_exist(Teams, name)
 
-        if isinstance(team, dict) and "error" in team:
-            return Response(team, status=status.HTTP_400_BAD_REQUEST)
+            team = TeamManager.create_team(name)
 
-        data = TeamSerializer(team).data
-        return Response({"team": data}, status=status.HTTP_200_OK)
+            team_serialized = TeamManager.check_db_return(team, TeamSerializer)
+
+            return Response({"team": team_serialized}, status=status.HTTP_201_CREATED)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
 @extend_schema_view(
     get=extend_schema(
         operation_id="team_retrieve",
-        summary="Obtenir une équipe",
+        summary="Obtenir une équipe par son id",
         tags=["Teams"],
         description="Détails d'une équipe par identifiant.",
         parameters=[OpenApiParameter("team_id", int, OpenApiParameter.PATH)],
@@ -123,41 +125,38 @@ class TeamDetail(APIView):
         return [IsAuthenticated()]
 
     def get(self, request, team_id):
-        team = TeamManager.get_team_by_id(team_id)
-        if isinstance(team, dict) and "error" in team:
-            return Response(team, status=status.HTTP_404_NOT_FOUND)
-        return Response({"id": team.id, "name": team.name})
-        team = TeamRepository.get_team_by_id(team_id)
-        if team is None:
-            return Response({"detail": "Not found."}, status=404)
-        return Response({"team_id": team.id, "name": team.name})
+        try:
+            team = TeamManager.check_db_element_exist(Teams, id=team_id)
+
+            team = TeamManager.get_team_by_id(team_id)
+
+            team_serialized = TeamManager.check_db_return(team, TeamSerializer)
+
+            return Response({"team": team_serialized}, status=status.HTTP_200_OK)
+        
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def put(self, request, team_id):
-        name = request.data.get("name")
-        if not name:
-            return Response(
-                {"error": "Name field is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        try:
+            name = TeamManager.check_body_element(request, "name")
 
-        team = TeamManager.update_team(team_id, name)
+            team = TeamManager.check_db_element_exist(Teams, id=team_id)
 
-        if isinstance(team, dict) and "error" in team:
-            return Response(team, status=status.HTTP_400_BAD_REQUEST)
+            new_team = TeamManager.update_team(team_id, name)
 
-        return Response(
-            {"is_updated": True, "new_name": team.name},
-            status=status.HTTP_200_OK
-        )
+            return Response({"is_updated": True, "new_name": new_team.name}, status=status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def delete(self, request, team_id):
-        result = TeamManager.delete_team(team_id)
+        try:
+            team = TeamManager.check_db_element_exist(Teams, id=team_id)
 
-        if isinstance(result, dict) and "error" in result:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            TeamManager.delete_team(team_id)
 
-        return Response({"is_deleted": True}, status=status.HTTP_200_OK)
-        success = TeamRepository.delete_team(team_id)
-        if not success:
-            return Response({"detail": "Not found."}, status=404)
-        return Response(status=204)
+            return Response({"is_deleted": True}, status=status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)

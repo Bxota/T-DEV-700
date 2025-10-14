@@ -2,18 +2,19 @@
 import datetime as dt
 from unittest.mock import patch, MagicMock
 
+from django.utils import timezone
 from django.utils.timezone import make_aware
 from django.test import TestCase
-from rest_framework.test import APIClient
-from rest_framework import status
+from django.urls import reverse
 
-from db_manager.models import Users, Shifts, Roles, Teams  # adapte si tes noms diffèrent
+from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from db_manager.models import Users, Shifts, Roles, Teams
 
 def iso(dt_obj):
     return dt_obj.isoformat().replace("+00:00", "Z")
-
 
 class BaseAPITest(TestCase):
     def setUp(self):
@@ -45,8 +46,6 @@ class BaseAPITest(TestCase):
         self.manager_token = str(RefreshToken.for_user(self.manager).access_token)
 
         self.base_user_url = f"/api/users/{self.user.id}/shifts/"
-        # On créera un shift concret en base quand nécessaire et on formera l’URL détail:
-        # f"/api/users/{self.user.id}/shifts/{shift.id}/"
 
     def auth_as(self, token):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -55,8 +54,6 @@ class BaseAPITest(TestCase):
 class TestUserShiftCollection(BaseAPITest):
     @patch("api.shifts.views.ShiftManager.list_shifts_by_user_id")  # adapte le path exact du module
     def test_list_shifts_by_user_ok(self, mock_list):
-        # Arrange
-        # La vue renvoie directement {"shifts": <retour>} sans sérialiser donc on simule une liste de dicts
         now = make_aware(dt.datetime.now())
         mock_list.return_value = [
             {
@@ -253,3 +250,117 @@ class TestUserShiftDetail(BaseAPITest):
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(resp.data.get("error"), "User and Shift not linked.")
+        
+    @patch("api.shifts.views.ShiftManager.check_in")
+    def test_check_in_ok(self, mock_check_in):
+        shift = self._make_shift()
+        shift.real_start_time = None
+        mock_check_in.return_value = shift
+
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-in/"
+        start_time = iso(make_aware(dt.datetime.now()))
+        resp = self.client.post(url, {"start_time": start_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data.get("is_check_in"))
+        self.assertIn("shift", resp.data)
+        mock_check_in.assert_called_once_with(shift_id=shift.id, start_time=start_time)
+
+    def test_check_in_missing_start_time(self):
+        shift = self._make_shift()
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-in/"
+        resp = self.client.post(url, {}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "start_time field is required.")
+
+    def test_check_in_already_started(self):
+        shift = self._make_shift()
+        shift.real_start_time = make_aware(dt.datetime.now())
+        shift.save()
+
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-in/"
+        start_time = iso(make_aware(dt.datetime.now()))
+        resp = self.client.post(url, {"start_time": start_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "shifts already has a real_start_time element")
+        
+    def test_check_in_user_not_found(self):
+        shift = self._make_shift()
+        shift.real_start_time = None
+
+        self.auth_as(self.user_token)
+        url = f"/api/users/9999/shifts/{shift.id}/check-in/"
+        start_time = iso(make_aware(dt.datetime.now()))
+        resp = self.client.post(url, {"start_time": start_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "users not found.")
+        
+    def test_check_in_shift_not_found(self):
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/9999/check-in/"
+        start_time = iso(make_aware(dt.datetime.now()))
+        resp = self.client.post(url, {"start_time": start_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "shifts not found.")
+        
+    @patch("api.shifts.views.ShiftManager.check_out")
+    def test_check_out_ok(self, mock_check_out):
+        shift = self._make_shift()
+        shift.real_start_time = make_aware(dt.datetime.now())
+        shift.real_end_time = None
+        shift.save()
+
+        mock_check_out.return_value = shift
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-out/"
+        end_time = iso(make_aware(dt.datetime.now() + dt.timedelta(hours=2)))
+        resp = self.client.post(url, {"end_time": end_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data.get("is_check_out"))
+        self.assertIn("shift", resp.data)
+        mock_check_out.assert_called_once_with(shift_id=shift.id, end_time=end_time)
+
+    def test_check_out_missing_end_time(self):
+        shift = self._make_shift()
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-out/"
+        resp = self.client.post(url, {}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "end_time field is required.")
+
+    def test_check_out_without_check_in(self):
+        shift = self._make_shift()
+        shift.real_start_time = None
+        shift.real_end_time = None
+        shift.save()
+
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-out/"
+        end_time = iso(make_aware(dt.datetime.now()))
+        resp = self.client.post(url, {"end_time": end_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "shifts doesn't has a real_start_time element")
+
+    def test_check_out_already_ended(self):
+        shift = self._make_shift()
+        shift.real_start_time = make_aware(dt.datetime.now())
+        shift.real_end_time = make_aware(dt.datetime.now() + dt.timedelta(hours=1))
+        shift.save()
+
+        self.auth_as(self.user_token)
+        url = f"/api/users/{self.user.id}/shifts/{shift.id}/check-out/"
+        end_time = iso(make_aware(dt.datetime.now() + dt.timedelta(hours=2)))
+        resp = self.client.post(url, {"end_time": end_time}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data["error"], "shifts already has a real_end_time element")

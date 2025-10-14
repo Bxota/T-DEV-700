@@ -84,3 +84,25 @@ class ShiftManagerTests(SimpleTestCase):
             ShiftManager.get_shift_by_id(self.shift_id)
 
         self.assertIn("boom", str(ctx.exception))
+        
+    @patch("api.shifts.service.ShiftRepository.check_in")
+    def test_check_in_calls_repository(self, mock_check_in):
+        shift_id = 1
+        start_time = datetime(2025, 10, 13, 9, 0, 0)
+        mock_check_in.return_value = {"success": True}
+
+        result = ShiftManager.check_in(shift_id=shift_id, start_time=start_time)
+
+        mock_check_in.assert_called_once_with(shift_id=shift_id, start_time=start_time)
+        self.assertEqual(result, {"success": True})
+        
+    @patch("api.shifts.service.ShiftRepository.check_out")
+    def test_check_out_calls_repository(self, mock_check_out):
+        shift_id = 2
+        end_time = datetime(2025, 10, 13, 18, 0, 0)
+        mock_check_out.return_value = {"success": True}
+
+        result = ShiftManager.check_out(shift_id=shift_id, end_time=end_time)
+
+        mock_check_out.assert_called_once_with(shift_id=shift_id, end_time=end_time)
+        self.assertEqual(result, {"success": True})

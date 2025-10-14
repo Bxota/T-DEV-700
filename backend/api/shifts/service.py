@@ -1,8 +1,11 @@
 from db_manager.repositories.shifts_repository import ShiftRepository
-from datetime import datetime
 from db_manager.models import Users
 
-class ShiftManager:
+from datetime import datetime
+
+from ..service import AbstractManager
+
+class ShiftManager(AbstractManager):
     @staticmethod
     def list_shifts():
         return ShiftRepository.get_shifts()
@@ -26,3 +29,10 @@ class ShiftManager:
     def delete_shift(shift_id: int):
         return ShiftRepository.delete_shift(shift_id)
         
+    @staticmethod
+    def check_in(shift_id: int, start_time: datetime):
+        return ShiftRepository.check_in(shift_id=shift_id, start_time=start_time)
+    
+    @staticmethod
+    def check_out(shift_id: int, end_time: datetime):
+        return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)       

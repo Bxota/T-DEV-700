@@ -87,6 +87,10 @@
 .btn-delete { background-color: #dc3545; color: white; }
 .btn-delete:hover { background-color: #b02a37; }
 
+.btn-add-member { background-color: #28a745; color: white; }
+.btn-add-member:hover { background-color: #218838; }
+
+
 /* ------- Modales ------- */
 
 .modal-overlay {
