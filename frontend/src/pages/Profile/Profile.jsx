@@ -25,12 +25,14 @@ const computeInitials = ({ firstName, lastName, email }) => {
 
 const Profile = () => {
   const { setUser: setCtxUser } = useUser(); // ← pour synchroniser le menu/avatar
+
+  // State avec forme STABLE (role/team = objets {id,name})
   const [user, setLocalUser] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    role: '',
-    team: '',
+    role: { id: null, name: '' },
+    team: { id: null, name: '' },
     phone: ''
   });
 
@@ -74,19 +76,22 @@ const Profile = () => {
         const data = await res.json();
         const u = data?.user ?? {};
 
+        // Normalisation API → state local
         const newUser = {
-          firstName: u.first_name || '',
-          lastName:  u.last_name  || '',
-          email:     u.email       || '',
-          role:      u.role        || '',
-          team:      u.team        || '',
-          phone:     u.phone_number|| ''
+          firstName: u.first_name ?? '',
+          lastName : u.last_name  ?? '',
+          email    : u.email      ?? '',
+          role     : { id: u.role?.id ?? null, name: u.role?.name ?? '' },
+          team     : { id: u.team?.id ?? null, name: u.team?.name ?? '' },
+          phone    : u.phone_number ?? ''
         };
 
         if (!cancelled) {
-          // État local (page profil)
+          // État local (page Profil)
           setLocalUser(newUser);
+
           // Contexte global (menu/avatar connecté)
+          // On stocke des strings si le contexte n’a besoin que des libellés
           setCtxUser(prev => ({
             ...prev,
             id: u.id ?? prev?.id ?? null,
@@ -94,9 +99,9 @@ const Profile = () => {
             username: prev?.username ?? null,
             first_name: newUser.firstName,
             last_name : newUser.lastName,
-            role: newUser.role ?? prev?.role ?? null,
-            team: newUser.team ?? prev?.team ?? null,
-            avatarUrl: prev?.avatarUrl ?? '' // au cas où tu ajoutes plus tard
+            role: newUser.role?.name ?? '',
+            team: newUser.team?.name ?? '',
+            avatarUrl: prev?.avatarUrl ?? ''
           }));
         }
       } catch (e) {
@@ -109,15 +114,30 @@ const Profile = () => {
     return () => { cancelled = true; };
   }, [setCtxUser]);
 
+  // Handler qui respecte la structure imbriquée
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setLocalUser(prev => ({ ...prev, [name]: value }));
+    setLocalUser(prev => {
+      if (name === 'roleName') {
+        return { ...prev, role: { ...prev.role, name: value } };
+      }
+      if (name === 'teamName') {
+        return { ...prev, team: { ...prev.team, name: value } };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleSave = () => {
     setIsEditing(false);
     console.log('Profil sauvegardé:', user);
-    // TODO: PUT vers ton endpoint d’update si besoin
+    // TODO: PUT/PATCH vers ton endpoint d’update si besoin
+    // Exemple:
+    // await fetch(`${BASE}/users/${id}`, {
+    //   method: 'PATCH',
+    //   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccess()}` },
+    //   body: JSON.stringify({ ... }),
+    // });
   };
 
   if (loading) {
@@ -232,17 +252,18 @@ const Profile = () => {
                 <label>Rôle</label>
                 {isEditing ? (
                   <select
-                    name="role"
-                    value={user.role}
+                    name="roleName"
+                    value={user.role?.name || ''}
                     onChange={handleInputChange}
                   >
+                    <option value="">—</option>
                     <option value="Developer">Developer</option>
                     <option value="Manager">Manager</option>
                     <option value="Designer">Designer</option>
                     <option value="Admin">Admin</option>
                   </select>
                 ) : (
-                  <span>{displayValue(user.role, 'Rôle')}</span>
+                  <span>{displayValue(user.role?.name, 'Rôle')}</span>
                 )}
               </div>
 
@@ -251,12 +272,12 @@ const Profile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    name="team"
-                    value={user.team}
+                    name="teamName"
+                    value={user.team?.name || ''}
                     onChange={handleInputChange}
                   />
                 ) : (
-                  <span>{displayValue(user.team, 'Équipe')}</span>
+                  <span>{displayValue(user.team?.name, 'Équipe')}</span>
                 )}
               </div>
             </div>

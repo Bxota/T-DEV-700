@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
-
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 import {
   BASE as ENV_BASE,
   getAuthHeaders,
   getAccess,
   logout,
-} from '../../api/auth'; // adapte le chemin si besoin
+} from '../../api/auth';
 
-// Base API (.env Vite: VITE_API_BASE=/api ou http://localhost:8080/api)
 const API_BASE = (ENV_BASE || '/api').replace(/\/$/, '');
+const u = (p) => `${API_BASE}${p}`; // helper d’URL sans slash final
 
-// ---- Helpers généraux ----
+
 function parseJwtUserId(token) {
   try {
     const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -30,12 +31,12 @@ function toDate(iso) { return iso ? new Date(iso) : null; }
 function colorForCheckIn(plannedIso, realIso) {
   if (!realIso) return '#111';
   const p = toDate(plannedIso), r = toDate(realIso);
-  return r <= p ? 'green' : 'red'; // à l’heure ou en avance -> vert
+  return r <= p ? 'green' : 'red';
 }
 function colorForCheckOut(plannedIso, realIso) {
   if (!realIso) return '#111';
   const p = toDate(plannedIso), r = toDate(realIso);
-  return r >= p ? 'green' : 'red'; // pas avant l’heure -> vert
+  return r >= p ? 'green' : 'red';
 }
 function isToday(iso) {
   if (!iso) return false;
@@ -45,67 +46,100 @@ function isToday(iso) {
     && d.getMonth() === t.getMonth()
     && d.getDate() === t.getDate();
 }
-// pour le bouton “Créer shift 08–12”
 function isoForToday(hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return d.toISOString();
 }
+/** Fenêtre de la journée courante en UTC: 00:00:00Z -> 23:59:59Z */
+function todayRangeUTC() {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const from = new Date(Date.UTC(y, m, d, 0, 0, 0)).toISOString();
+  const to   = new Date(Date.UTC(y, m, d, 23, 59, 59)).toISOString();
+  return { from, to };
+}
+function normalizeShiftsResponse(data) {
+  let arr = [];
+  if (!data) return arr;
 
+  if (Array.isArray(data)) {
+    arr = data;
+  } else if (Array.isArray(data.shifts)) {
+    arr = data.shifts;
+  } else if (typeof data === 'object') {
+    arr = Object.values(data);
+  }
+
+  return arr
+    .filter(s => s && s.id) // un minimum de validation
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+}
 const Dashboard = () => {
-  // ---- Auth / user_id
   const access = useMemo(() => getAccess(), []);
   const userId = useMemo(() => parseJwtUserId(access), [access]);
   if (!access || !userId) { logout(); return null; }
 
-  // ---- State
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [shifts, setShifts]   = useState([]);
 
+  const totalSlots = Math.max(1, shifts.length * 2);
+  const filledSlots = shifts.reduce(
+    (acc, s) => acc + (s.real_start_time ? 1 : 0) + (s.real_end_time ? 1 : 0),
+    0
+  );
+  const percentage = Math.round((filledSlots / totalSlots) * 100);
   const headers = () => getAuthHeaders();
 
-  // ---- Charger automatiquement les shifts au montage
   useEffect(() => { fetchUserShifts(); }, []);
 
-  async function fetchUserShifts() {
-    setError(''); setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/users/${userId}/shifts/`, {
-        method: 'GET', headers: headers(),
-      });
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await res.json() : { error: await res.text() };
-      if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
-      setShifts(Array.isArray(data?.shifts) ? data.shifts : []);
-    } catch (e) {
-      setError(e.message || 'Erreur réseau');
-    } finally { setLoading(false); }
-  }
+  // 🔄 Lister les shifts de la journée via la nouvelle route /shifts/list
+async function fetchUserShifts() {
+  setError(''); setLoading(true);
+  try {
+    const { from, to } = todayRangeUTC();
+    const url = `${API_BASE}/users/${userId}/shifts/list?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
-  // ---- Créer un shift de test 08–12 (aujourd’hui)
+    const res = await fetch(url, { method: 'GET', headers: headers() });
+    const ct = res.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await res.json() : { error: await res.text() };
+    if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
+
+    // ⬇️ Transforme l’objet { "1": {...}, "2": {...} } en tableau trié
+    setShifts(normalizeShiftsResponse(data?.results ?? data));
+  } catch (e) {
+    setError(e.message || 'Erreur réseau');
+  } finally {
+    setLoading(false);
+  }
+}
+
+  // ➕ Créer un shift de test (ex 16–17)
   async function createShift0812() {
     setError(''); setLoading(true);
     try {
       const body = { start_time: isoForToday('16:00'), end_time: isoForToday('17:00') };
-      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/`, {
+      const res  = await fetch(u(`/users/${userId}/shifts`), {
         method: 'POST', headers: headers(), body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.detail || data?.error || `Erreur ${res.status}`);
-      await fetchUserShifts(); // recharge la liste
+      await fetchUserShifts();
     } catch (e) {
       setError(e.message || 'Erreur réseau');
     } finally { setLoading(false); }
   }
 
-  // ---- Actions API par shift
+  // ✅ Check-in
   async function rowCheckIn(s) {
     setError(''); setLoading(true);
     try {
       const body = { start_time: new Date().toISOString() };
-      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/${s.id}/check-in/`, {
+      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-in`), {
         method: 'POST', headers: headers(), body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
@@ -117,11 +151,12 @@ const Dashboard = () => {
     } finally { setLoading(false); }
   }
 
+  // ✅ Check-out
   async function rowCheckOut(s) {
     setError(''); setLoading(true);
     try {
       const body = { end_time: new Date().toISOString() };
-      const res  = await fetch(`${API_BASE}/users/${userId}/shifts/${s.id}/check-out/`, {
+      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-out`), {
         method: 'POST', headers: headers(), body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
@@ -142,7 +177,6 @@ const Dashboard = () => {
       <div className="section">
         <h2 className="section-title">Mes shifts</h2>
 
-        {/* Barre d’actions */}
         <div style={{ display:'flex', gap:12, justifyContent:'center', marginBottom:16, flexWrap:'wrap' }}>
           <button className="pointage-button" onClick={fetchUserShifts} disabled={loading}>
             Rafraîchir
@@ -152,7 +186,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Affichage par shift : deux gros boutons alignés + couleurs + grisé si terminé */}
         <div className="shifts-scroll">
           {shifts.length === 0 ? (
             <p className="muted-text">Aucun shift.</p>
@@ -211,6 +244,25 @@ const Dashboard = () => {
               );
             })
           )}
+        </div>
+      </div>
+
+      <div className="section">
+        <h2 className="section-title">Statistiques</h2>
+        <div style={{ width: 160, margin: '20px auto' }}>
+          <CircularProgressbar
+            value={percentage}
+            text={`${percentage}%`}
+            styles={buildStyles({
+              textSize: '18px',
+              pathColor: '#007bff',
+              textColor: '#333',
+              trailColor: '#eee',
+            })}
+          />
+          <p style={{ textAlign: 'center', marginTop: 10 }}>
+            Présence (tous les shifts)
+          </p>
         </div>
       </div>
     </div>
