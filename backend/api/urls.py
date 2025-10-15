@@ -6,4 +6,5 @@ urlpatterns = [
     path("", include("api.token.urls")),
     path("", include("api.users.urls")),
     path("", include("api.shifts.urls")),
+    path("", include("api.shifts.shift_gestion.urls")),
 ]
