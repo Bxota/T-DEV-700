@@ -88,7 +88,7 @@ const Dashboard = () => {
   async function createShift0812() {
     setError(''); setLoading(true);
     try {
-      const body = { start_time: isoForToday('08:00'), end_time: isoForToday('12:00') };
+      const body = { start_time: isoForToday('16:00'), end_time: isoForToday('17:00') };
       const res  = await fetch(`${API_BASE}/users/${userId}/shifts/`, {
         method: 'POST', headers: headers(), body: JSON.stringify(body),
       });
@@ -153,61 +153,58 @@ const Dashboard = () => {
         </div>
 
         {/* Affichage par shift : deux gros boutons alignés + couleurs + grisé si terminé */}
-        {shifts.length === 0 && <p className="muted-text">Aucun shift.</p>}
-
-        {shifts.map((s) => {
-          const completedToday = isToday(s.start_time) && s.real_start_time && s.real_end_time;
-          return (
-            <div
-              key={s.id}
-              className={`bloc shift-block ${completedToday ? 'completed' : ''}`}
-              style={{ marginBottom: 28 }}
-            >
-              <div className="bloc-title"><h3>Shift #{s.id}</h3></div>
-              <div className="bloc-title"><h3>Matin</h3></div>
-
-              <div className="shift-actions">
-                {/* Check-in */}
-                <div className="shift-action">
-                  <button
-                    className="pointage-button"
-                    onClick={() => rowCheckIn(s)}
-                    disabled={!!s.real_start_time || completedToday || loading}
-                  >
-                    Check-in<br/>API
-                  </button>
-                  <span
-                    className="pointage-time"
-                    style={{ color: colorForCheckIn(s.start_time, s.real_start_time) }}
-                  >
-                    {s.real_start_time
-                      ? `Réel ${fmtHHmm(s.real_start_time)}`
-                      : `Prévu ${fmtHHmm(s.start_time)}`}
-                  </span>
+        <div className="shifts-scroll">
+          {shifts.length === 0 ? (
+            <p className="muted-text">Aucun shift.</p>
+          ) : (
+            shifts.map((s) => {
+              const completedToday = isToday(s.start_time) && s.real_start_time && s.real_end_time;
+              return (
+                <div
+                  key={s.id}
+                  className={`bloc shift-block ${completedToday ? 'completed' : ''}`}
+                  style={{ marginBottom: 28 }}
+                >
+                  <div className="bloc-title"><h3>Shift {s.id}</h3></div>
+                  <div className="shift-actions">
+                    {/* Check-in */}
+                    <div className="shift-action">
+                      <button
+                        className="pointage-button"
+                        onClick={() => rowCheckIn(s)}
+                        disabled={!!s.real_start_time || completedToday || loading}
+                      >
+                        Check-in<br/>API
+                      </button>
+                      <span
+                        className="pointage-time"
+                        style={{ color: colorForCheckIn(s.start_time, s.real_start_time) }}
+                      >
+                        {s.real_start_time ? `Réel ${fmtHHmm(s.real_start_time)}` : `Prévu ${fmtHHmm(s.start_time)}`}
+                      </span>
+                    </div>
+                    {/* Check-out */}
+                    <div className="shift-action">
+                      <button
+                        className="pointage-button"
+                        onClick={() => rowCheckOut(s)}
+                        disabled={!s.real_start_time || !!s.real_end_time || completedToday || loading}
+                      >
+                        Check-out<br/>API
+                      </button>
+                      <span
+                        className="pointage-time"
+                        style={{ color: colorForCheckOut(s.end_time, s.real_end_time) }}
+                      >
+                        {s.real_end_time ? `Réel ${fmtHHmm(s.real_end_time)}` : `Prévu ${fmtHHmm(s.end_time)}`}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Check-out */}
-                <div className="shift-action">
-                  <button
-                    className="pointage-button"
-                    onClick={() => rowCheckOut(s)}
-                    disabled={!s.real_start_time || !!s.real_end_time || completedToday || loading}
-                  >
-                    Check-out<br/>API
-                  </button>
-                  <span
-                    className="pointage-time"
-                    style={{ color: colorForCheckOut(s.end_time, s.real_end_time) }}
-                  >
-                    {s.real_end_time
-                      ? `Réel ${fmtHHmm(s.real_end_time)}`
-                      : `Prévu ${fmtHHmm(s.end_time)}`}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

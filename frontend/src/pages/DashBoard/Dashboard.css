@@ -70,3 +70,38 @@
 .shift-block.completed .pointage-button {
   pointer-events: none; /* ignore les clics même si non disabled */
 }
+.shifts-scroll {
+  max-height: 60vh;          /* ajuste si tu veux plus/moins de hauteur */
+  overflow-y: auto;
+  padding: 8px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* éviter un gros espace après le dernier élément */
+.shifts-scroll .shift-block:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* (facultatif) scrollbars plus clean */
+.shifts-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.shifts-scroll::-webkit-scrollbar-track {
+  background: #f3f3f4;
+  border-radius: 8px;
+}
+.shifts-scroll::-webkit-scrollbar-thumb {
+  background: #c9c9ce;
+  border-radius: 8px;
+}
+.shifts-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b5b5bb;
+}
+
+/* Firefox */
+.shifts-scroll {
+  scrollbar-color: #c9c9ce #f3f3f4;  /* thumb track */
+  scrollbar-width: thin;
+}
