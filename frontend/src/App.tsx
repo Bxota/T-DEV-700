@@ -1,3 +1,4 @@
+// @ts-ignore
 import { BrowserRouter } from 'react-router-dom';
 // @ts-ignore
 import Sidebar from './components/layout/Sidebar';
@@ -7,7 +8,12 @@ import ImgLogin from './components/layout/ImgLogin';
 import AppRoutes from './routes/AppRoutes';
 // @ts-ignore
 import { UserProvider } from './context/UserContext';
+// @ts-ignore
 import './App.css';
+
+// @ts-ignore
+import { initAuthBackgroundTasks } from './api/auth';
+initAuthBackgroundTasks(); // appelé une seule fois au chargement du module
 
 function App() {
   return (
