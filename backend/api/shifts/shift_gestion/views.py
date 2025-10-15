@@ -46,7 +46,7 @@ def _ensure_manager_of_team(user: Users, team_id: int):
     operation_id="shift_template_create",
     tags=["Shifts · Manager"],
     summary="Créer un modèle de shift (manager)",
-    description="Crée un **ShiftTemplate** pour l’équipe donnée. Accès réservé aux managers de l’équipe.",
+    description="Crée un **ShiftTemplate** pour l'équipe donnée. Accès réservé aux managers de l'équipe.",
     request=CreateTemplateInput,
     responses={
         201: OpenApiResponse(
@@ -107,6 +107,174 @@ def create_shift_template(request, team_id: int):
         "timezone": res.timezone,
         "is_active": res.is_active,
     }, status=status.HTTP_201_CREATED)
+    
+# --- LIST & RETRIEVE: Shift Templates (manager only) ---
+@extend_schema(
+    operation_id="shift_template_list_by_team",
+    tags=["Shifts · Manager"],
+    summary="Lister les ShiftTemplates d'une équipe (manager)",
+    description="Retourne les modèles de shift pour l’équipe donnée. Accès réservé aux managers de l’équipe.",
+    responses={
+        200: OpenApiResponse(
+            description="Liste des templates",
+            examples=[OpenApiExample(
+                "Succès",
+                value={
+                    "count": 1,
+                    "results": [
+                        {
+                            "id": 12,
+                            "name": "Matin standard",
+                            "team_id": 4,
+                            "role_id": None,
+                            "default_duration_minutes": 480,
+                            "timezone": "Europe/Paris",
+                            "is_active": True
+                        }
+                    ]
+                }
+            )]
+        ),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+    },
+    parameters=[
+        OpenApiParameter(name="team_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(name="active_only", type=OpenApiTypes.BOOL, location=OpenApiParameter.QUERY, required=False,
+                         description="Filtrer uniquement les templates actifs (true/false)."),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_shift_templates_by_team(request, team_id: int):
+    guard = _ensure_manager_of_team(request.user, team_id)
+    if guard:
+        return guard
+
+    active_only = str(request.query_params.get("active_only", "")).lower() in ("1", "true", "yes")
+    qs = ShiftTemplate.objects.filter(team_id=team_id)
+    if active_only:
+        qs = qs.filter(is_active=True)
+
+    data = [{
+        "id": t.id,
+        "name": t.name,
+        "team_id": t.team_id,
+        "role_id": t.role_id,
+        "default_duration_minutes": t.default_duration_minutes,
+        "timezone": t.timezone,
+        "is_active": t.is_active,
+    } for t in qs.order_by("name", "id")]
+
+    return Response({"count": len(data), "results": data}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    operation_id="shift_template_retrieve",
+    tags=["Shifts · Manager"],
+    summary="Détail d’un ShiftTemplate (manager)",
+    description="Retourne le template, ses règles et leurs exceptions.",
+    responses={
+        200: OpenApiResponse(
+            description="Détail du template",
+            examples=[OpenApiExample(
+                "Succès",
+                value={
+                    "id": 12,
+                    "name": "Matin standard",
+                    "team_id": 4,
+                    "role_id": None,
+                    "default_duration_minutes": 480,
+                    "timezone": "Europe/Paris",
+                    "is_active": True,
+                    "rules": [
+                        {
+                            "id": 31,
+                            "weekday": 2,
+                            "start_local_time": "08:00:00",
+                            "duration_minutes": 480,
+                            "effective_from": "2025-10-01",
+                            "effective_to": None,
+                            "apply_to_whole_team": True,
+                            "assigned_user_ids": [],
+                            "exceptions": [
+                                {
+                                    "id": 7,
+                                    "date": "2025-10-15",
+                                    "is_skipped": True,
+                                    "override_start_local_time": None,
+                                    "override_duration_minutes": None,
+                                    "note": "Férié local"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            )]
+        ),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftTemplate introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def retrieve_shift_template(request, template_id: int):
+    tpl = (
+        ShiftTemplate.objects
+        .select_related("team", "role")
+        .filter(id=template_id)
+        .first()
+    )
+    if not tpl:
+        return Response({"error": "ShiftTemplate not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # sécurité: manager de la même équipe
+    guard = _ensure_manager_of_team(request.user, tpl.team_id)
+    if guard:
+        return guard
+
+    rules = (
+        ShiftRule.objects
+        .select_related("template")
+        .prefetch_related("assigned_users", "exceptions")
+        .filter(template_id=tpl.id)
+        .order_by("weekday", "start_local_time")
+    )
+
+    rules_data = []
+    for r in rules:
+        rules_data.append({
+            "id": r.id,
+            "weekday": r.weekday,
+            "start_local_time": r.start_local_time.strftime("%H:%M:%S"),
+            "duration_minutes": r.duration_minutes,
+            "effective_from": r.effective_from.isoformat(),
+            "effective_to": r.effective_to.isoformat() if r.effective_to else None,
+            "apply_to_whole_team": r.apply_to_whole_team,
+            "assigned_user_ids": list(r.assigned_users.values_list("id", flat=True)),
+            "exceptions": [{
+                "id": e.id,
+                "date": e.date.isoformat(),
+                "is_skipped": e.is_skipped,
+                "override_start_local_time": e.override_start_local_time.strftime("%H:%M:%S") if e.override_start_local_time else None,
+                "override_duration_minutes": e.override_duration_minutes,
+                "note": e.note,
+            } for e in r.exceptions.all().order_by("date")],
+        })
+
+    data = {
+        "id": tpl.id,
+        "name": tpl.name,
+        "team_id": tpl.team_id,
+        "role_id": tpl.role_id,
+        "default_duration_minutes": tpl.default_duration_minutes,
+        "timezone": tpl.timezone,
+        "is_active": tpl.is_active,
+        "rules": rules_data,
+    }
+    return Response(data, status=status.HTTP_200_OK)
 
 # --- 2) POST /api/shift-templates/{template_id}/rules/ ---
 
@@ -115,8 +283,8 @@ def create_shift_template(request, team_id: int):
     tags=["Shifts · Manager"],
     summary="Ajouter une règle récurrente (manager)",
     description=(
-        "Ajoute une **ShiftRule** hebdomadaire (weekday 0=lundi..6=dimanche), avec période d’effet, "
-        "heures locales et affectation (toute l’équipe ou liste d’utilisateurs)."
+        "Ajoute une **ShiftRule** hebdomadaire (weekday 0=lundi..6=dimanche), avec période d'effet, "
+        "heures locales et affectation (toute l'équipe ou liste d'utilisateurs)."
     ),
     request=CreateRuleInput,
     responses={
@@ -195,8 +363,8 @@ def add_shift_rule(request, template_id: int):
     tags=["Shifts · Manager"],
     summary="Assigner des utilisateurs à une règle (manager)",
     description=(
-        "Définit l’affectation d’une **ShiftRule** : soit `apply_to_whole_team=true`, soit une liste `user_ids`.\n"
-        "Met automatiquement `apply_to_whole_team=false` en cas d’envoi de `user_ids`."
+        "Définit l'affectation d'une **ShiftRule** : soit `apply_to_whole_team=true`, soit une liste `user_ids`.\n"
+        "Met automatiquement `apply_to_whole_team=false` en cas d'envoi de `user_ids`."
     ),
     request=AssignUsersInput,
     responses={
@@ -366,7 +534,7 @@ def add_shift_exception(request, rule_id: int):
     tags=["Shifts · Manager"],
     summary="Générer les occurrences de shifts (manager)",
     description=(
-        "Génère les **Shifts** concrets à partir des règles de l’équipe pour une fenêtre future (rolling window). "
+        "Génère les **Shifts** concrets à partir des règles de l'équipe pour une fenêtre future (rolling window). "
         "La génération est idempotente (pas de doublons)."
     ),
     responses={
@@ -410,10 +578,10 @@ def generate_team_shifts(request, team_id: int):
 @extend_schema(
     operation_id="user_shifts_list_window",
     tags=["Shifts · Runtime"],
-    summary="Lister les shifts d’un utilisateur (fenêtre temporelle)",
+    summary="Lister les shifts d'un utilisateur (fenêtre temporelle)",
     description=(
         "Retourne les **occurrences** de shifts pour un utilisateur entre `from` et `to` (ISO 8601). "
-        "Autorisé pour l’utilisateur lui-même ou le manager de son équipe."
+        "Autorisé pour l'utilisateur lui-même ou le manager de son équipe."
     ),
     responses={
         200: OpenApiResponse(
