@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
-from .models import Shifts, Teams, Users, Roles
+from .models import Shifts, Teams, Users, Roles, ShiftTemplate, ShiftRule, ShiftException
 
 from datetime import datetime, timezone
 
@@ -76,3 +76,20 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
             data["refresh_token_expires_at"] = datetime.fromtimestamp(refresh_exp_ts, tz=timezone.utc).isoformat()
 
         return data
+
+class ShiftTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShiftTemplate
+        fields = ["id", "name", "team", "role", "default_duration_minutes", "timezone", "is_active"]
+
+class ShiftRuleSerializer(serializers.ModelSerializer):
+    assigned_users = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    class Meta:
+        model = ShiftRule
+        fields = ["id", "template", "weekday", "start_local_time", "duration_minutes",
+                  "effective_from", "effective_to", "apply_to_whole_team", "assigned_users"]
+
+class ShiftExceptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShiftException
+        fields = ["id", "rule", "date", "is_skipped", "override_start_local_time", "override_duration_minutes", "note"]
