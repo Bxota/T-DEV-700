@@ -15,7 +15,7 @@ from api.shifts.shift_gestion.views import (
 urlpatterns = [
     # Manager / templates & rules
     path("teams/<int:team_id>/shift-templates", create_shift_template, name="create_shift_template"),
-    path("teams/<int:team_id>/shift-templates", list_shift_templates_by_team, name="list_shift_templates_by_team"),
+    path("teams/<int:team_id>/shift-templates/list", list_shift_templates_by_team, name="list_shift_templates_by_team"),
     path("shift-templates/<int:template_id>", retrieve_shift_template, name="retrieve_shift_template"),
     path("shift-templates/<int:template_id>/rules", add_shift_rule, name="add_shift_rule"),
     path("shift-rules/<int:rule_id>/assign-users", assign_rule_users, name="assign_rule_users"),
