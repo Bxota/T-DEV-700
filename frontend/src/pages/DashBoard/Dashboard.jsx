@@ -173,30 +173,37 @@ const Dashboard = () => {
                         className="pointage-button"
                         onClick={() => rowCheckIn(s)}
                         disabled={!!s.real_start_time || completedToday || loading}
+                        title={`Check-in prévu ${fmtHHmm(s.start_time)}`}
                       >
-                        Check-in<br/>API
+                        {`Check-in ${fmtHHmm(s.start_time)}`}
                       </button>
                       <span
                         className="pointage-time"
                         style={{ color: colorForCheckIn(s.start_time, s.real_start_time) }}
                       >
-                        {s.real_start_time ? `Réel ${fmtHHmm(s.real_start_time)}` : `Prévu ${fmtHHmm(s.start_time)}`}
+                        {s.real_start_time
+                          ? `Réel ${fmtHHmm(s.real_start_time)}`
+                          : `Prévu ${fmtHHmm(s.start_time)}`}
                       </span>
                     </div>
+
                     {/* Check-out */}
                     <div className="shift-action">
                       <button
                         className="pointage-button"
                         onClick={() => rowCheckOut(s)}
                         disabled={!s.real_start_time || !!s.real_end_time || completedToday || loading}
+                        title={`Check-out prévu ${fmtHHmm(s.end_time)}`}
                       >
-                        Check-out<br/>API
+                        {`Check-out ${fmtHHmm(s.end_time)}`}
                       </button>
                       <span
                         className="pointage-time"
                         style={{ color: colorForCheckOut(s.end_time, s.real_end_time) }}
                       >
-                        {s.real_end_time ? `Réel ${fmtHHmm(s.real_end_time)}` : `Prévu ${fmtHHmm(s.end_time)}`}
+                        {s.real_end_time
+                          ? `Réel ${fmtHHmm(s.real_end_time)}`
+                          : `Prévu ${fmtHHmm(s.end_time)}`}
                       </span>
                     </div>
                   </div>
