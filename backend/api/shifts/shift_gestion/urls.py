@@ -9,15 +9,24 @@ from api.shifts.shift_gestion.views import (
     list_user_shifts_window,
     team_calendar_view,
     list_shift_templates_by_team,
-    retrieve_shift_template
+    retrieve_shift_template,
+    list_shift_rules_by_template,
+    retrieve_shift_rule
 )
 
 urlpatterns = [
     # Manager / templates & rules
+    
+    # Créer et récupérer les shift templates
     path("teams/<int:team_id>/shift-templates", create_shift_template, name="create_shift_template"),
     path("teams/<int:team_id>/shift-templates/list", list_shift_templates_by_team, name="list_shift_templates_by_team"),
     path("shift-templates/<int:template_id>", retrieve_shift_template, name="retrieve_shift_template"),
+    
+    # Créer et récupérer les shifts rules
     path("shift-templates/<int:template_id>/rules", add_shift_rule, name="add_shift_rule"),
+    path("shift-templates/<int:template_id>/rules/list", list_shift_rules_by_template, name="list_shift_rules_by_template"),
+    path("shift-rules/<int:rule_id>", retrieve_shift_rule, name="retrieve_shift_rule"),
+    
     path("shift-rules/<int:rule_id>/assign-users", assign_rule_users, name="assign_rule_users"),
     path("shift-rules/<int:rule_id>/exceptions", add_shift_exception, name="add_shift_exception"),
 

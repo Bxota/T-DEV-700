@@ -276,6 +276,175 @@ def retrieve_shift_template(request, template_id: int):
     }
     return Response(data, status=status.HTTP_200_OK)
 
+# --- GET /api/shift-templates/{template_id}/rules ---
+@extend_schema(
+    operation_id="shift_rule_list_by_template",
+    tags=["Shifts · Manager"],
+    summary="Lister les ShiftRules d’un template (manager)",
+    description="Retourne la liste des règles récurrentes associées à un ShiftTemplate donné.",
+    responses={
+        200: OpenApiResponse(
+            description="Liste des règles",
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "count": 2,
+                        "results": [
+                            {
+                                "id": 31,
+                                "weekday": 2,
+                                "start_local_time": "08:00:00",
+                                "duration_minutes": 480,
+                                "effective_from": "2025-10-01",
+                                "effective_to": None,
+                                "apply_to_whole_team": True,
+                                "assigned_user_ids": [],
+                            },
+                            {
+                                "id": 32,
+                                "weekday": 4,
+                                "start_local_time": "09:00:00",
+                                "duration_minutes": 420,
+                                "effective_from": "2025-10-01",
+                                "effective_to": "2026-01-01",
+                                "apply_to_whole_team": False,
+                                "assigned_user_ids": [8, 9],
+                            },
+                        ]
+                    },
+                )
+            ],
+        ),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftTemplate introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_shift_rules_by_template(request, template_id: int):
+    tpl = ShiftTemplate.objects.filter(id=template_id).select_related("team").first()
+    if not tpl:
+        return Response({"error": "ShiftTemplate not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    guard = _ensure_manager_of_team(request.user, tpl.team_id)
+    if guard:
+        return guard
+
+    rules = (
+        ShiftRule.objects
+        .filter(template_id=template_id)
+        .prefetch_related("assigned_users")
+        .order_by("weekday", "start_local_time")
+    )
+
+    data = [
+        {
+            "id": r.id,
+            "template_id": r.template_id,
+            "weekday": r.weekday,
+            "start_local_time": r.start_local_time.strftime("%H:%M:%S"),
+            "duration_minutes": r.duration_minutes,
+            "effective_from": r.effective_from.isoformat(),
+            "effective_to": r.effective_to.isoformat() if r.effective_to else None,
+            "apply_to_whole_team": r.apply_to_whole_team,
+            "assigned_user_ids": list(r.assigned_users.values_list("id", flat=True)),
+        }
+        for r in rules
+    ]
+
+    return Response({"count": len(data), "results": data}, status=status.HTTP_200_OK)
+
+
+# --- GET /api/shift-rules/{rule_id} ---
+@extend_schema(
+    operation_id="shift_rule_retrieve",
+    tags=["Shifts · Manager"],
+    summary="Récupérer une ShiftRule (manager)",
+    description="Retourne les détails d’une règle (weekday, durée, assignations, exceptions).",
+    responses={
+        200: OpenApiResponse(
+            description="Détail d’une règle",
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "id": 31,
+                        "template_id": 12,
+                        "weekday": 2,
+                        "start_local_time": "08:00:00",
+                        "duration_minutes": 480,
+                        "effective_from": "2025-10-01",
+                        "effective_to": None,
+                        "apply_to_whole_team": True,
+                        "assigned_user_ids": [],
+                        "exceptions": [
+                            {
+                                "id": 7,
+                                "date": "2025-10-15",
+                                "is_skipped": True,
+                                "override_start_local_time": None,
+                                "override_duration_minutes": None,
+                                "note": "Férié local",
+                            }
+                        ],
+                    },
+                )
+            ],
+        ),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftRule introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(name="rule_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def retrieve_shift_rule(request, rule_id: int):
+    rule = (
+        ShiftRule.objects
+        .select_related("template__team")
+        .prefetch_related("assigned_users", "exceptions")
+        .filter(id=rule_id)
+        .first()
+    )
+    if not rule:
+        return Response({"error": "ShiftRule not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    guard = _ensure_manager_of_team(request.user, rule.template.team_id)
+    if guard:
+        return guard
+
+    data = {
+        "id": rule.id,
+        "template_id": rule.template_id,
+        "weekday": rule.weekday,
+        "start_local_time": rule.start_local_time.strftime("%H:%M:%S"),
+        "duration_minutes": rule.duration_minutes,
+        "effective_from": rule.effective_from.isoformat(),
+        "effective_to": rule.effective_to.isoformat() if rule.effective_to else None,
+        "apply_to_whole_team": rule.apply_to_whole_team,
+        "assigned_user_ids": list(rule.assigned_users.values_list("id", flat=True)),
+        "exceptions": [
+            {
+                "id": e.id,
+                "date": e.date.isoformat(),
+                "is_skipped": e.is_skipped,
+                "override_start_local_time": e.override_start_local_time.strftime("%H:%M:%S")
+                if e.override_start_local_time else None,
+                "override_duration_minutes": e.override_duration_minutes,
+                "note": e.note,
+            }
+            for e in rule.exceptions.all().order_by("date")
+        ],
+    }
+
+    return Response(data, status=status.HTTP_200_OK)
+
 # --- 2) POST /api/shift-templates/{template_id}/rules/ ---
 
 @extend_schema(
