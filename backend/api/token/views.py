@@ -29,8 +29,14 @@ def whoami(request):
             "last_name": request.user.last_name or "",
             "email": request.user.email or "",
             "phone_number": getattr(request.user, "phone_number", None),
-            "role": getattr(request.user.role, "name", None),
-            "team": getattr(request.user.team, "name", None),
+            "role": {
+                "id": getattr(request.user.role, "id", None),    
+                "name": getattr(request.user.role, "name", None),    
+            },
+            "team": {
+                "id": getattr(request.user.team, "id", None),    
+                "name": getattr(request.user.team, "name", None),    
+            },
             "is_authenticated": request.user.is_authenticated,
             "is_active": request.user.is_active,
         }
