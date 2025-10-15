@@ -29,8 +29,6 @@ urlpatterns = [
     
     path("shift-rules/<int:rule_id>/assign-users", assign_rule_users, name="assign_rule_users"),
     path("shift-rules/<int:rule_id>/exceptions", add_shift_exception, name="add_shift_exception"),
-    path("teams/<int:team_id>/shift-templates", list_shift_templates_by_team, name="list_shift_templates_by_team"),
-    path("shift-templates/<int:template_id>", retrieve_shift_template, name="retrieve_shift_template"),
 
     # Génération
     path("teams/<int:team_id>/shifts/generate", generate_team_shifts, name="generate_team_shifts"),
