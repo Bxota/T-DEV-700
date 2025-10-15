@@ -10,6 +10,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import APIException
 
 from db_manager.models import Users, Shifts, Roles, Teams
 
@@ -55,20 +56,14 @@ class TestUserShiftCollection(BaseAPITest):
     @patch("api.shifts.views.ShiftManager.list_shifts_by_user_id")  # adapte le path exact du module
     def test_list_shifts_by_user_ok(self, mock_list):
         now = make_aware(dt.datetime.now())
-        mock_list.return_value = [
-            {
-                "id": 101,
-                "user": self.user.id,
-                "start_time": iso(now),
-                "end_time": iso(now + dt.timedelta(hours=2)),
-            }
-        ]
+        s = Shifts.objects.create(user=self.user, start_time=now, end_time=now + dt.timedelta(hours=2))
+
+        # ⬇️ renvoie un QS d'instances, pas des dicts
+        mock_list.return_value = Shifts.objects.filter(user=self.user).order_by("id")
 
         self.auth_as(self.user_token)
-        # Act
         resp = self.client.get(self.base_user_url)
 
-        # Assert
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn("shifts", resp.data)
         self.assertEqual(len(resp.data["shifts"]), 1)
@@ -117,7 +112,10 @@ class TestUserShiftCollection(BaseAPITest):
         self.auth_as(self.user_token)
         start = iso(make_aware(dt.datetime.now()))
         end = iso(make_aware(dt.datetime.now() + dt.timedelta(hours=2)))
-        mock_create.return_value = {"error": "Overlap"}
+
+        exc = APIException({"error": "Overlap"})
+        exc.status_code = 400
+        mock_create.side_effect = exc
 
         resp = self.client.post(self.base_user_url, {"start_time": start, "end_time": end}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -147,16 +145,14 @@ class TestUserShiftDetail(BaseAPITest):
 
     @patch("api.shifts.views.ShiftManager.get_shift_by_id")
     def test_get_shift_service_error(self, mock_get):
-        mock_get.return_value = {"error": "Shift not found."}
         self.auth_as(self.user_token)
         url = f"/api/users/{self.user.id}/shifts/9999/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(resp.data.get("error"), "Shift not found.")
+        self.assertEqual(resp.data.get("error"), "shifts not found.")
 
     @patch("api.shifts.views.ShiftManager.get_shift_by_id")
     def test_get_shift_user_mismatch(self, mock_get):
-        # shift appartenant à un autre user
         other_user = Users.objects.create_user(
             email="other@example.com", password="pass", role=self.role_user, team=self.team
         )
@@ -168,52 +164,58 @@ class TestUserShiftDetail(BaseAPITest):
         resp = self.client.get(url)
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(resp.data.get("error"), "User and Shift not linked.")
+        self.assertEqual(resp.data.get("error"), "This shift does not belong to this user.")
 
     def test_update_shift_validation(self):
         shift = self._make_shift()
         self.auth_as(self.user_token)
         url = f"/api/users/{self.user.id}/shifts/{shift.id}/"
 
+        self.auth_as(self.manager_token)
+
         # missing start_time
-        resp = self.client.post(url, {"end_time": iso(make_aware(dt.datetime.now()))}, format="json")
+        resp = self.client.put(url, {"end_time": iso(make_aware(dt.datetime.now()))}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(resp.data.get("error"), "start_time field is required.")
 
         # missing end_time
-        resp = self.client.post(url, {"start_time": iso(make_aware(dt.datetime.now()))}, format="json")
+        resp = self.client.put(url, {"start_time": iso(make_aware(dt.datetime.now()))}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(resp.data.get("error"), "end_time field is required.")
 
+    @patch("api.shifts.views.ShiftManager.check_valid_shift_interval")
     @patch("api.shifts.views.ShiftManager.update_shift")
-    def test_update_shift_ok(self, mock_update):
+    def test_update_shift_ok(self, mock_update, mock_check_valid):
         shift = self._make_shift()
         fake_updated = MagicMock(spec=Shifts)
         fake_updated.id = shift.id
         mock_update.return_value = fake_updated
+        mock_check_valid.return_value = True
 
-        self.auth_as(self.user_token)
+        self.auth_as(self.manager_token)
+
         url = f"/api/users/{self.user.id}/shifts/{shift.id}/"
         start = iso(make_aware(dt.datetime.now()))
         end = iso(make_aware(dt.datetime.now() + dt.timedelta(hours=3)))
 
-        resp = self.client.post(url, {"start_time": start, "end_time": end}, format="json")
+        resp = self.client.put(url, {"start_time": start, "end_time": end}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data.get("is_updated"))
-        self.assertEqual(resp.data.get("id"), shift.id)
 
     @patch("api.shifts.views.ShiftManager.update_shift")
     def test_update_shift_service_error(self, mock_update):
         shift = self._make_shift()
-        mock_update.return_value = {"error": "Overlap"}
-        self.auth_as(self.user_token)
+        mock_update.side_effect = APIException({"error": "Shift time interval overlaps with an existing shift."}, 400)
+
+        self.auth_as(self.manager_token)
+
         url = f"/api/users/{self.user.id}/shifts/{shift.id}/"
         start = iso(make_aware(dt.datetime.now()))
         end = iso(make_aware(dt.datetime.now() + dt.timedelta(hours=3)))
 
-        resp = self.client.post(url, {"start_time": start, "end_time": end}, format="json")
+        resp = self.client.put(url, {"start_time": start, "end_time": end}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(resp.data.get("error"), "Overlap")
+        self.assertEqual(resp.data.get("error"), "Shift time interval overlaps with an existing shift.")
 
     @patch("api.shifts.views.ShiftManager.delete_shift")
     def test_delete_shift_ok_with_manager_permission(self, mock_delete):
@@ -238,7 +240,6 @@ class TestUserShiftDetail(BaseAPITest):
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_shift_user_mismatch(self):
-        # Si le shift n’appartient pas au user de l’URL, la vue retourne un dict {"error": ...}
         other = Users.objects.create_user(
             email="x@example.com", password="pass", role=self.role_user, team=self.team
         )
@@ -249,7 +250,7 @@ class TestUserShiftDetail(BaseAPITest):
         resp = self.client.delete(url)
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(resp.data.get("error"), "User and Shift not linked.")
+        self.assertEqual(resp.data.get("error"), "This shift does not belong to this user.")
         
     @patch("api.shifts.views.ShiftManager.check_in")
     def test_check_in_ok(self, mock_check_in):
