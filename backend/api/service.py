@@ -18,6 +18,14 @@ class AbstractManager:
             raise ValidationError({"error": f"{name} field is required."})
         
         return element
+    
+    def check_query_param_element_str(request, name: str):
+        element = str(request.query_params.get(name, "")).lower() 
+        return element
+    
+    def check_query_param_element_int(request, name: str):
+        element = int(request.query_params.get(name, ""))
+        return element
         
     def check_db_element_exist(className, id: int):
         try:

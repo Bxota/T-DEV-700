@@ -4,13 +4,21 @@ from django.utils import timezone
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework import status
 
-from db_manager.models import Users, Teams, Shifts, ShiftTemplate, ShiftRule
+from datetime import timezone as dt_tz
+
+from api.permissions import IsTeamManager
+from api.shifts.service import ShiftManager
+from api.users.service import UserManager
+from api.shifts.shift_gestion.service import ShiftExceptionManager, ShiftRuleManager, ShiftTemplateManager 
+
+from db_manager.models import Users, Shifts
 from db_manager.repositories.shift_template_repository import ShiftTemplateRepository
 from db_manager.repositories.shift_rule_repository import ShiftRuleRepository
-from db_manager.repositories.shift_exception_repository import ShiftExceptionRepository
+from db_manager.serializers import ShiftTemplateSerializer, ShiftRuleSerializer, ShiftExceptionSerializer, ShiftSerializer
 
 from api.shifts.shift_gestion.serializer import (
     CreateTemplateInput, CreateRuleInput, AssignUsersInput, CreateExceptionInput
@@ -21,24 +29,6 @@ from drf_spectacular.utils import (
     extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
 )
 from drf_spectacular.types import OpenApiTypes
-
-# --- Helpers de permission ---
-
-def _is_manager_of_team(user: Users, team_id: int) -> bool:
-    try:
-        if not user.is_active:
-            return False
-        if user.team_id != team_id:
-            return False
-        # Si ton "role" a un champ 'name', on compare à "manager"
-        return (user.role and user.role.name.lower() == "manager")
-    except Exception:
-        return False
-
-def _ensure_manager_of_team(user: Users, team_id: int):
-    if not _is_manager_of_team(user, team_id):
-        return Response({"error": "Forbidden (manager-only for this team)."}, status=status.HTTP_403_FORBIDDEN)
-    return None
 
 # --- 1) POST /api/teams/{team_id}/shift-templates/ ---
 
@@ -74,39 +64,29 @@ def _ensure_manager_of_team(user: Users, team_id: int):
     ],
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def create_shift_template(request, team_id: int):
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
+    try:
+        serializer = CreateTemplateInput(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = CreateTemplateInput(data=request.data)
-    if not serializer.is_valid():
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    payload = serializer.validated_data
-    res = ShiftTemplateRepository.create_template(
-        name=payload["name"],
-        team_id=team_id,
-        created_by_id=request.user.id,
-        default_duration_minutes=payload["default_duration_minutes"],
-        timezone=payload.get("timezone", "Europe/Paris"),
-        role_id=payload.get("role_id"),
-        is_active=payload.get("is_active", True),
-    )
-    if isinstance(res, dict) and "error" in res:
-        return Response(res, status=status.HTTP_400_BAD_REQUEST)
-
-    # réponse simple
-    return Response({
-        "id": res.id,
-        "name": res.name,
-        "team_id": res.team_id,
-        "role_id": res.role_id,
-        "default_duration_minutes": res.default_duration_minutes,
-        "timezone": res.timezone,
-        "is_active": res.is_active,
-    }, status=status.HTTP_201_CREATED)
+        payload = serializer.validated_data
+        res = ShiftTemplateManager.create_template(
+            name=payload["name"],
+            team_id=team_id,
+            created_by_id=request.user.id,
+            default_duration_minutes=payload["default_duration_minutes"],
+            timezone=payload.get("timezone", "Europe/Paris"),
+            role_id=payload.get("role_id"),
+            is_active=payload.get("is_active", True),
+        )
+        
+        res_serialized = ShiftTemplateManager.check_db_return(res, ShiftTemplateSerializer)
+        
+        return Response(res_serialized, status=status.HTTP_201_CREATED)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
     
 # --- LIST & RETRIEVE: Shift Templates (manager only) ---
 @extend_schema(
@@ -144,29 +124,17 @@ def create_shift_template(request, team_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def list_shift_templates_by_team(request, team_id: int):
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
+    try:
+        active_only = ShiftTemplateManager.check_query_param_element_str(request, "active_only") in ("1", "true", "yes")
+        qs = ShiftTemplateManager.get_shift_template_by_team_id(team_id, active_only).order_by("name", "id")
+        
+        qs_serialized = ShiftTemplateManager.check_db_return(qs, ShiftTemplateSerializer)
 
-    active_only = str(request.query_params.get("active_only", "")).lower() in ("1", "true", "yes")
-    qs = ShiftTemplate.objects.filter(team_id=team_id)
-    if active_only:
-        qs = qs.filter(is_active=True)
-
-    data = [{
-        "id": t.id,
-        "name": t.name,
-        "team_id": t.team_id,
-        "role_id": t.role_id,
-        "default_duration_minutes": t.default_duration_minutes,
-        "timezone": t.timezone,
-        "is_active": t.is_active,
-    } for t in qs.order_by("name", "id")]
-
-    return Response({"count": len(data), "results": data}, status=status.HTTP_200_OK)
-
+        return Response({"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 @extend_schema(
     operation_id="shift_template_retrieve",
@@ -219,62 +187,34 @@ def list_shift_templates_by_team(request, team_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def retrieve_shift_template(request, template_id: int):
-    tpl = (
-        ShiftTemplate.objects
-        .select_related("team", "role")
-        .filter(id=template_id)
-        .first()
-    )
-    if not tpl:
-        return Response({"error": "ShiftTemplate not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        tpl = ShiftTemplateManager.get_shift_template_by_id(template_id)
+        rules_qs = (
+            ShiftRuleManager.get_shift_rule_by_template_id(tpl.id)
+            .order_by("weekday", "start_local_time")
+        )
+        
+        tpl_serialized = ShiftTemplateManager.check_db_return(tpl, ShiftTemplateSerializer)
+        rules_serialized = []
+        
+        for r in rules_qs:
+            r_serialized = ShiftRuleManager.check_db_return(r, ShiftRuleSerializer)
 
-    # sécurité: manager de la même équipe
-    guard = _ensure_manager_of_team(request.user, tpl.team_id)
-    if guard:
-        return guard
+            # Récupérer les exceptions triées pour CETTE règle
+            ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(rule_id=r.id).order_by("date")
+            ex_serialized = ShiftExceptionManager.check_db_return(ex_qs, ShiftExceptionSerializer)
 
-    rules = (
-        ShiftRule.objects
-        .select_related("template")
-        .prefetch_related("assigned_users", "exceptions")
-        .filter(template_id=tpl.id)
-        .order_by("weekday", "start_local_time")
-    )
+            # Attacher au dict de la règle
+            r_serialized["exceptions"] = ex_serialized
+            rules_serialized.append(r_serialized)
 
-    rules_data = []
-    for r in rules:
-        rules_data.append({
-            "id": r.id,
-            "weekday": r.weekday,
-            "start_local_time": r.start_local_time.strftime("%H:%M:%S"),
-            "duration_minutes": r.duration_minutes,
-            "effective_from": r.effective_from.isoformat(),
-            "effective_to": r.effective_to.isoformat() if r.effective_to else None,
-            "apply_to_whole_team": r.apply_to_whole_team,
-            "assigned_user_ids": list(r.assigned_users.values_list("id", flat=True)),
-            "exceptions": [{
-                "id": e.id,
-                "date": e.date.isoformat(),
-                "is_skipped": e.is_skipped,
-                "override_start_local_time": e.override_start_local_time.strftime("%H:%M:%S") if e.override_start_local_time else None,
-                "override_duration_minutes": e.override_duration_minutes,
-                "note": e.note,
-            } for e in r.exceptions.all().order_by("date")],
-        })
+        tpl_serialized["rules"] = rules_serialized
 
-    data = {
-        "id": tpl.id,
-        "name": tpl.name,
-        "team_id": tpl.team_id,
-        "role_id": tpl.role_id,
-        "default_duration_minutes": tpl.default_duration_minutes,
-        "timezone": tpl.timezone,
-        "is_active": tpl.is_active,
-        "rules": rules_data,
-    }
-    return Response(data, status=status.HTTP_200_OK)
+        return Response(tpl_serialized, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 # --- GET /api/shift-templates/{template_id}/rules ---
 @extend_schema(
@@ -324,39 +264,15 @@ def retrieve_shift_template(request, template_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def list_shift_rules_by_template(request, template_id: int):
-    tpl = ShiftTemplate.objects.filter(id=template_id).select_related("team").first()
-    if not tpl:
-        return Response({"error": "ShiftTemplate not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        rules = ShiftRuleManager.get_shift_rule_by_template_id(template_id)
+        rules_serialized = ShiftRuleManager.check_db_return(rules, ShiftRuleSerializer)
 
-    guard = _ensure_manager_of_team(request.user, tpl.team_id)
-    if guard:
-        return guard
-
-    rules = (
-        ShiftRule.objects
-        .filter(template_id=template_id)
-        .prefetch_related("assigned_users")
-        .order_by("weekday", "start_local_time")
-    )
-
-    data = [
-        {
-            "id": r.id,
-            "template_id": r.template_id,
-            "weekday": r.weekday,
-            "start_local_time": r.start_local_time.strftime("%H:%M:%S"),
-            "duration_minutes": r.duration_minutes,
-            "effective_from": r.effective_from.isoformat(),
-            "effective_to": r.effective_to.isoformat() if r.effective_to else None,
-            "apply_to_whole_team": r.apply_to_whole_team,
-            "assigned_user_ids": list(r.assigned_users.values_list("id", flat=True)),
-        }
-        for r in rules
-    ]
-
-    return Response({"count": len(data), "results": data}, status=status.HTTP_200_OK)
+        return Response({"count": len(rules), "results": rules_serialized}, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 
 # --- GET /api/shift-rules/{rule_id} ---
@@ -403,47 +319,22 @@ def list_shift_rules_by_template(request, template_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def retrieve_shift_rule(request, rule_id: int):
-    rule = (
-        ShiftRule.objects
-        .select_related("template__team")
-        .prefetch_related("assigned_users", "exceptions")
-        .filter(id=rule_id)
-        .first()
-    )
-    if not rule:
-        return Response({"error": "ShiftRule not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        rule = ShiftRuleManager.get_shift_rule_by_id(rule_id)
+        rule_serialized = ShiftRuleManager.check_db_return(rule, ShiftRuleSerializer)
+        
+        # Récupérer les exceptions triées pour CETTE règle
+        ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(rule_id=rule.id).order_by("date")
+        ex_serialized = ShiftExceptionManager.check_db_return(ex_qs, ShiftExceptionSerializer)
 
-    guard = _ensure_manager_of_team(request.user, rule.template.team_id)
-    if guard:
-        return guard
+        # Attacher au dict de la règle
+        rule_serialized["exceptions"] = ex_serialized
 
-    data = {
-        "id": rule.id,
-        "template_id": rule.template_id,
-        "weekday": rule.weekday,
-        "start_local_time": rule.start_local_time.strftime("%H:%M:%S"),
-        "duration_minutes": rule.duration_minutes,
-        "effective_from": rule.effective_from.isoformat(),
-        "effective_to": rule.effective_to.isoformat() if rule.effective_to else None,
-        "apply_to_whole_team": rule.apply_to_whole_team,
-        "assigned_user_ids": list(rule.assigned_users.values_list("id", flat=True)),
-        "exceptions": [
-            {
-                "id": e.id,
-                "date": e.date.isoformat(),
-                "is_skipped": e.is_skipped,
-                "override_start_local_time": e.override_start_local_time.strftime("%H:%M:%S")
-                if e.override_start_local_time else None,
-                "override_duration_minutes": e.override_duration_minutes,
-                "note": e.note,
-            }
-            for e in rule.exceptions.all().order_by("date")
-        ],
-    }
-
-    return Response(data, status=status.HTTP_200_OK)
+        return Response(rule_serialized, status=status.HTTP_200_OK)
+    except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
 # --- 2) POST /api/shift-templates/{template_id}/rules/ ---
 
@@ -485,45 +376,33 @@ def retrieve_shift_rule(request, rule_id: int):
     ],
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def add_shift_rule(request, template_id: int):
-    tpl = ShiftTemplate.objects.filter(id=template_id).select_related("team").first()
-    if not tpl:
-        return Response({"error": "ShiftTemplate not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        tpl = ShiftTemplateManager.get_shift_template_by_id(template_id)
+        
+        serializer = CreateRuleInput(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    guard = _ensure_manager_of_team(request.user, tpl.team_id)
-    if guard:
-        return guard
+        payload = serializer.validated_data
+        res = ShiftRuleRepository.create_rule(
+            template_id=template_id,
+            weekday=payload["weekday"],
+            start_local_time=payload["start_local_time"],
+            duration_minutes=payload["duration_minutes"],
+            effective_from=payload["effective_from"],
+            effective_to=payload.get("effective_to"),
+            apply_to_whole_team=payload.get("apply_to_whole_team", False),
+            assigned_user_ids=payload.get("assigned_user_ids"),
+        )
+        
+        res_serialized = ShiftRuleManager.check_db_return(res, ShiftRuleSerializer)
 
-    serializer = CreateRuleInput(data=request.data)
-    if not serializer.is_valid():
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(res_serialized, status=status.HTTP_201_CREATED)
 
-    payload = serializer.validated_data
-    res = ShiftRuleRepository.create_rule(
-        template_id=template_id,
-        weekday=payload["weekday"],
-        start_local_time=payload["start_local_time"],
-        duration_minutes=payload["duration_minutes"],
-        effective_from=payload["effective_from"],
-        effective_to=payload.get("effective_to"),
-        apply_to_whole_team=payload.get("apply_to_whole_team", False),
-        assigned_user_ids=payload.get("assigned_user_ids"),
-    )
-    if isinstance(res, dict) and "error" in res:
-        return Response(res, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({
-        "id": res.id,
-        "template_id": res.template_id,
-        "weekday": res.weekday,
-        "start_local_time": res.start_local_time,
-        "duration_minutes": res.duration_minutes,
-        "effective_from": res.effective_from,
-        "effective_to": res.effective_to,
-        "apply_to_whole_team": res.apply_to_whole_team,
-        "assigned_user_ids": list(res.assigned_users.values_list("id", flat=True)),
-    }, status=status.HTTP_201_CREATED)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 # --- 3) POST /api/shift-rules/{rule_id}/assign-users/ ---
 
@@ -569,45 +448,46 @@ def add_shift_rule(request, template_id: int):
     ],
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def assign_rule_users(request, rule_id: int):
-    rule = ShiftRule.objects.filter(id=rule_id).select_related("template__team").first()
-    if not rule:
-        return Response({"error": "ShiftRule not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        rule = ShiftRuleManager.get_shift_rule_by_id(rule_id)
+        team_id = rule.template.team_id
 
-    team_id = rule.template.team_id
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
+        serializer = AssignUsersInput(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = AssignUsersInput(data=request.data)
-    if not serializer.is_valid():
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        payload = serializer.validated_data
+        if payload.get("apply_to_whole_team") is True:
+            # activer whole team et vider les assignations spécifiques
+            upd = ShiftRuleManager.update_rule(rule.id, apply_to_whole_team=True)
+            upd_serialized = ShiftRuleManager.check_db_return(upd, ShiftRuleSerializer)
+            cleared = ShiftRuleManager.clear_assigned_users(rule.id)
+            
+            if isinstance(cleared, dict) and "error" in cleared:
+                return Response(cleared, status=status.HTTP_400_BAD_REQUEST)
+            
+            rule.refresh_from_db()
+        
+        else:
+            # définir user_ids (et forcer apply_to_whole_team=False)
+            user_ids = payload.get("user_ids", [])
+            
+            res = ShiftRuleManager.assign_users(rule.id, user_ids)
+            if isinstance(res, dict) and "error" in res:
+                return Response(res, status=status.HTTP_400_BAD_REQUEST)
+            rule = res
 
-    payload = serializer.validated_data
-    if payload.get("apply_to_whole_team") is True:
-        # activer whole team et vider les assignations spécifiques
-        upd = ShiftRuleRepository.update_rule(rule.id, apply_to_whole_team=True)
-        if isinstance(upd, dict) and "error" in upd:
-            return Response(upd, status=status.HTTP_400_BAD_REQUEST)
-        cleared = ShiftRuleRepository.clear_assigned_users(rule.id)
-        if isinstance(cleared, dict) and "error" in cleared:
-            return Response(cleared, status=status.HTTP_400_BAD_REQUEST)
-        rule.refresh_from_db()
-    else:
-        # définir user_ids (et forcer apply_to_whole_team=False)
-        user_ids = payload.get("user_ids", [])
-        res = ShiftRuleRepository.assign_users(rule.id, user_ids)
-        if isinstance(res, dict) and "error" in res:
-            return Response(res, status=status.HTTP_400_BAD_REQUEST)
-        rule = res
-
-    return Response({
-        "id": rule.id,
-        "template_id": rule.template_id,
-        "apply_to_whole_team": rule.apply_to_whole_team,
-        "assigned_user_ids": list(rule.assigned_users.values_list("id", flat=True)),
-    }, status=status.HTTP_200_OK)
+        return Response({
+            "id": rule.id,
+            "template_id": rule.template_id,
+            "apply_to_whole_team": rule.apply_to_whole_team,
+            "assigned_user_ids": list(rule.assigned_users.values_list("id", flat=True)),
+        }, status=status.HTTP_200_OK)
+        
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 # --- 4) POST /api/shift-rules/{rule_id}/exceptions/ ---
 
@@ -659,42 +539,30 @@ def assign_rule_users(request, rule_id: int):
     ],
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def add_shift_exception(request, rule_id: int):
-    rule = ShiftRule.objects.filter(id=rule_id).select_related("template__team").first()
-    if not rule:
-        return Response({"error": "ShiftRule not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        rule = ShiftRuleManager.get_shift_rule_by_id(rule_id)
+         
+        serializer = CreateExceptionInput(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    team_id = rule.template.team_id
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
-
-    serializer = CreateExceptionInput(data=request.data)
-    if not serializer.is_valid():
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    payload = serializer.validated_data
-    res = ShiftExceptionRepository.create_exception(
-        rule_id=rule_id,
-        date_value=payload["date"],
-        is_skipped=payload.get("is_skipped", False),
-        override_start_local_time=payload.get("override_start_local_time"),
-        override_duration_minutes=payload.get("override_duration_minutes"),
-        note=payload.get("note", "") or "",
-    )
-    if isinstance(res, dict) and "error" in res:
-        return Response(res, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({
-        "id": res.id,
-        "rule_id": res.rule_id,
-        "date": res.date,
-        "is_skipped": res.is_skipped,
-        "override_start_local_time": res.override_start_local_time,
-        "override_duration_minutes": res.override_duration_minutes,
-        "note": res.note,
-    }, status=status.HTTP_201_CREATED)
+        payload = serializer.validated_data
+        
+        res = ShiftExceptionManager.create_exception(
+            rule_id= rule_id,
+            date= payload["date"],
+            is_skipped=payload.get("is_skipped", False),
+            override_start_local_time= payload.get("override_start_local_time"),
+            override_duration_minutes= payload.get("override_duration_minutes"),
+            note=payload.get("note", "") or "",
+        )
+        res_serialized = ShiftExceptionManager.check_db_return(res, ShiftExceptionSerializer)
+        
+        return Response(res_serialized, status=status.HTTP_201_CREATED)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 # --- 5) POST /api/teams/{team_id}/shifts/generate?days=56 ---
 
@@ -725,21 +593,20 @@ def add_shift_exception(request, rule_id: int):
     ],
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def generate_team_shifts(request, team_id: int):
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
-
     try:
-        days = int(request.query_params.get("days", "56"))
+        days = ShiftManager.check_query_param_element_int(request, "days") or "56"
+        
         if days < 1 or days > 365:
             return Response({"error": "days must be in [1..365]"}, status=status.HTTP_400_BAD_REQUEST)
+    
     except ValueError:
         return Response({"error": "days must be integer"}, status=status.HTTP_400_BAD_REQUEST)
 
     today = date.today()
     res = generate_occurrences_for_window(today, today + timedelta(days=days), team_id=team_id)
+    
     return Response({"created": res.get("created", 0)}, status=status.HTTP_200_OK)
 
 # --- 6) GET /api/users/{user_id}/shifts?from=...&to=... ---
@@ -799,53 +666,37 @@ def generate_team_shifts(request, team_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def list_user_shifts_window(request, user_id: int):
-    # Autz: le user lui-même OU le manager de son équipe
-    target = Users.objects.filter(id=user_id).first()
-    if not target:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-    is_self = (request.user.id == user_id)
-    is_mgr_same_team = (_is_manager_of_team(request.user, target.team_id) if target.team_id else False)
-    if not (is_self or is_mgr_same_team):
-        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-
-    # fenêtre
     try:
-        from_str = request.query_params.get("from")
-        to_str = request.query_params.get("to")
-        if not from_str or not to_str:
-            return Response({"error": "Query params 'from' and 'to' are required (ISO dates)."}, status=status.HTTP_400_BAD_REQUEST)
-        start = timezone.datetime.fromisoformat(from_str)
-        end = timezone.datetime.fromisoformat(to_str)
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=timezone.utc)
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=timezone.utc)
-        if end <= start:
-            return Response({"error": "'to' must be after 'from'."}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        return Response({"error": "Invalid 'from'/'to' format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+        # Autz: le user lui-même OU le manager de son équipe
+        target = UserManager.get_user_by_id(user_id)
+        
+        # fenêtre
+        try:
+            from_str = ShiftManager.check_query_param_element_str("from")
+            to_str = ShiftManager.check_query_param_element_str("to")
+            if not from_str or not to_str:
+                return Response({"error": "Query params 'from' and 'to' are required (ISO dates)."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            start = timezone.datetime.fromisoformat(from_str)
+            end = timezone.datetime.fromisoformat(to_str)
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=timezone.utc)
+            if end <= start:
+                return Response({"error": "'to' must be after 'from'."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception:
+            return Response({"error": "Invalid 'from'/'to' format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
 
-    qs = Shifts.objects.filter(
-        user_id=user_id,
-        start_time__lt=end,
-        end_time__gt=start
-    ).order_by("start_time")
+        qs = ShiftManager.list_shifts_by_user_id_and_date(user_id, start=start, end=end)
+        qs_serialized = ShiftManager.check_db_return(qs, ShiftSerializer)
 
-    data = [{
-        "id": s.id,
-        "user_id": s.user_id,
-        "start_time": s.start_time,
-        "end_time": s.end_time,
-        "template_id": s.template_id,
-        "rule_id": s.rule_id,
-        "real_start_time": s.real_start_time,
-        "real_end_time": s.real_end_time,
-    } for s in qs]
-
-    return Response({"count": len(data), "results": data}, status=status.HTTP_200_OK)
+        return Response({"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
 
 # --- 7) (optionnel) GET /api/teams/{team_id}/calendar?from=...&to=... ---
 
@@ -904,50 +755,48 @@ def list_user_shifts_window(request, user_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def team_calendar_view(request, team_id: int):
-    # manager only (sinon, expose trop d'infos)
-    guard = _ensure_manager_of_team(request.user, team_id)
-    if guard:
-        return guard
-
     try:
-        from_str = request.query_params.get("from")
-        to_str = request.query_params.get("to")
-        if not from_str or not to_str:
-            return Response({"error": "Query params 'from' and 'to' are required (ISO)."}, status=status.HTTP_400_BAD_REQUEST)
-        start = timezone.datetime.fromisoformat(from_str)
-        end = timezone.datetime.fromisoformat(to_str)
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=timezone.utc)
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=timezone.utc)
-        if end <= start:
-            return Response({"error": "'to' must be after 'from'."}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        return Response({"error": "Invalid 'from'/'to' format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            from_str = ShiftManager.check_query_param_element_str(request, "from")
+            to_str = ShiftManager.check_query_param_element_str(request, "to")
 
-    users_ids = list(Users.objects.filter(team_id=team_id, is_active=True).values_list("id", flat=True))
-    qs = Shifts.objects.filter(
-        user_id__in=users_ids,
-        start_time__lt=end,
-        end_time__gt=start
-    ).select_related("user").order_by("start_time")
+            if not from_str or not to_str:
+                return Response(
+                    {"error": "Query params 'from' and 'to' are required (ISO)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-    results = [{
-        "shift_id": s.id,
-        "user_id": s.user_id,
-        "user_email": s.user.email if s.user_id else None,
-        "start_time": s.start_time,
-        "end_time": s.end_time,
-        "template_id": s.template_id,
-        "rule_id": s.rule_id,
-    } for s in qs]
+            from_str = from_str.replace("Z", "+00:00")
+            to_str = to_str.replace("Z", "+00:00")
 
-    return Response({
-        "team_id": team_id,
-        "from": start,
-        "to": end,
-        "count": len(results),
-        "results": results
-    }, status=status.HTTP_200_OK)
+            start = timezone.datetime.fromisoformat(from_str)
+            end = timezone.datetime.fromisoformat(to_str)
+
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=dt_tz.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=dt_tz.utc)
+
+            if end <= start:
+                return Response(
+                    {"error": "'to' must be after 'from'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        shifts = ShiftManager.list_shifts_by_team_id(team_id)
+        shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
+        team_serialized = {
+            "team_id": team_id,
+            "from": start,
+            "to": end,
+            "count": len(shifts),
+            "results": shifts_serialized
+        }
+        
+        return Response(team_serialized, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)

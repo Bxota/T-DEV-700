@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 )
 
-from api.permissions import HasTeamTagPermission
+from api.permissions import IsTeamManager
 from api.teams.service import TeamManager
 from api.shifts.service import ShiftManager
 from db_manager.serializers import RoleSerializer, UserSerializer
@@ -93,7 +93,7 @@ class UserTeamCollection(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method == "POST":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
     
     def get(self, request, team_id):
@@ -172,11 +172,11 @@ class UserCollection(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method == "POST":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         if self.request.method == "PUT":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         if self.request.method == "DELETE":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
 
     def get(self, request):
@@ -246,9 +246,9 @@ class UserDetail(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method == "PUT":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         if self.request.method == "DELETE":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
     
     def get(self, request, user_id):
@@ -299,7 +299,7 @@ class UserRoles(APIView):
 
     def get_permissions(self):
         if self.request.method == "GET":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
 
     def get(self, request):

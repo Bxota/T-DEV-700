@@ -40,4 +40,8 @@ class ShiftManager(AbstractManager):
     
     @staticmethod
     def check_out(shift_id: int, end_time: datetime):
-        return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)       
+        return ShiftRepository.check_out(shift_id=shift_id, end_time=end_time)
+    
+    @staticmethod
+    def list_shifts_by_user_id_and_date(user_id: str, start: datetime, end: datetime):
+        return ShiftRepository.list_shifts_by_user_id_and_date(user_id, start, end)
