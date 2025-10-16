@@ -1,0 +1,94 @@
+name: ${PROJECT_NAME}-prod
+
+services:
+  db:
+    image: "postgres:${POSTGRES_VERSION}"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION}
+        PORT_BACK: ${PORT_BACK}
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      PORT_BACK: ${PORT_BACK}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    volumes:
+      - staticfiles:/app/static
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        NODE_VERSION: ${NODE_VERSION_PROD}
+    env_file:
+      - ./frontend/.env.prod
+    networks:
+      - internal
+    volumes:
+      - frontend_dist:/app/dist
+
+  reverseproxy:
+    build:
+      context: ./reverseProxy
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        NGX_VERSION: ${NGX_VERSION}
+    environment:
+      PORT_FRONT: ${PORT_FRONT}
+      PORT_BACK: ${PORT_BACK}
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    networks:
+      - internal
+      - edge
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost/healthz || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    ports:
+      - "${PORT_NGX}:80"
+    volumes:
+      - frontend_dist:/usr/share/nginx/html:ro
+      - staticfiles:/var/www/static:ro
+
+volumes:
+  pgdata:
+  frontend_dist:
+  staticfiles:
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    driver: bridge
