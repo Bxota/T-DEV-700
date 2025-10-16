@@ -10,11 +10,13 @@ from db_manager.repositories.user_repository import UserRepository
 class TeamRepositoryTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.team_a = Teams.objects.create(name="Team A")
-        cls.team_b = Teams.objects.create(name="Team B")
+        Roles.objects.all().delete()
 
         cls.role_employee = Roles.objects.create(name="Employee")
         cls.role_manager = Roles.objects.create(name="Manager")
+
+        cls.team_a = Teams.objects.create(name="Team A")
+        cls.team_b = Teams.objects.create(name="Team B")
 
         cls.user_1 = Users.objects.create(
             email="u1@example.com",

@@ -1,5 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
+
+from django.core.exceptions import MultipleObjectsReturned
 from api.permissions import IsTeamManager
 from db_manager.models import Roles
 
@@ -69,3 +71,87 @@ class TestIsTeamManager:
         # Simule le cas où Roles.objects.get(name='manager') ne trouve rien
         with patch("api.permissions.Roles.objects.get", side_effect=Roles.DoesNotExist):
             assert perm.has_permission(request, None) is False
+
+    def test_allows_when_user_is_staff_without_role(self):
+        user = MagicMock()
+        user.is_authenticated = True
+        user.is_staff = True
+        delattr(user, "role")
+        request = MagicMock(user=user)
+        perm = IsTeamManager()
+        assert perm.has_permission(request, None) is True
+
+    def test_multiple_objects_returned_fallback(self, monkeypatch):
+        user = MagicMock()
+        user.is_authenticated = True
+        user.role = self.manager_role
+
+        called = {}
+
+        manager_role = self.manager_role
+
+        def fake_filter(**kwargs):
+            called["filter"] = True
+
+            class FakeQS:
+                def order_by(self, *args, **kwargs):
+                    class WithFirst:
+                        def first(self_inner):
+                            return manager_role
+
+                    return WithFirst()
+
+            return FakeQS()
+
+        monkeypatch.setattr(
+            "api.permissions.Roles.objects.get",
+            lambda **kwargs: (_ for _ in ()).throw(MultipleObjectsReturned()),
+        )
+        monkeypatch.setattr("api.permissions.Roles.objects.filter", fake_filter)
+        perm = IsTeamManager()
+        request = MagicMock(user=user)
+        view = MagicMock()
+        view.kwargs = {}
+        assert perm.has_permission(request, view) is True
+        assert called.get("filter")
+
+    def test_has_permission_team_scope_mismatch(self):
+        team_a = MagicMock()
+        team_a.id = 1
+        user = MagicMock()
+        user.is_authenticated = True
+        user.role = self.manager_role
+        user.team_id = 1
+
+        view = MagicMock()
+        view.kwargs = {"team_id": 2}
+
+        with patch("api.permissions.Teams.objects.filter", return_value=MagicMock(exists=lambda: True)):
+            request = MagicMock(user=user)
+            perm = IsTeamManager()
+            assert perm.has_permission(request, view) is False
+
+    def test_has_object_permission_requires_matching_team(self):
+        team = MagicMock()
+        user = MagicMock()
+        user.is_authenticated = True
+        user.role = self.manager_role
+        user.team_id = 5
+
+        obj = MagicMock()
+        obj.team_id = 6
+
+        perm = IsTeamManager()
+        request = MagicMock(user=user)
+        assert perm.has_object_permission(request, MagicMock(), obj) is False
+
+    def test_has_object_permission_allows_when_same_team(self):
+        obj = MagicMock()
+        obj.team_id = 7
+        user = MagicMock()
+        user.is_authenticated = True
+        user.role = self.manager_role
+        user.team_id = 7
+        request = MagicMock(user=user)
+        perm = IsTeamManager()
+        assert perm.has_object_permission(request, MagicMock(), obj) is True
