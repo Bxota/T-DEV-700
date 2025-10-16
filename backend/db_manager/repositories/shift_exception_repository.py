@@ -3,7 +3,7 @@ from typing import Optional, Union
 from datetime import date, time as time_type
 from django.db import IntegrityError, transaction
 from db_manager.models import ShiftException, ShiftRule
-
+from rest_framework.exceptions import APIException
 
 class ShiftExceptionRepository:
     @staticmethod
@@ -35,7 +35,7 @@ class ShiftExceptionRepository:
             # ex: unique_together (rule, date) violée
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def get_by_id(exception_id: int) -> Union[ShiftException, dict]:
@@ -45,7 +45,7 @@ class ShiftExceptionRepository:
                 return {"error": "ShiftException not found"}
             return exc
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def list_by_rule(rule_id: int):
@@ -78,7 +78,7 @@ class ShiftExceptionRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def delete_exception(exception_id: int) -> Union[dict, None]:
@@ -91,4 +91,4 @@ class ShiftExceptionRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})

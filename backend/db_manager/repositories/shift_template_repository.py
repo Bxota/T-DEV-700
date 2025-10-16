@@ -2,6 +2,7 @@
 from typing import Optional, Iterable, Union
 from django.db import IntegrityError, transaction
 from db_manager.models import ShiftTemplate, Teams, Roles, Users
+from rest_framework.exceptions import APIException
 
 
 class ShiftTemplateRepository:
@@ -45,7 +46,7 @@ class ShiftTemplateRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def get_by_id(template_id: int) -> Union[ShiftTemplate, dict]:
@@ -55,7 +56,7 @@ class ShiftTemplateRepository:
                 return {"error": "ShiftTemplate not found"}
             return tpl
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def list_by_team(team_id: int, *, active_only: bool = False):
@@ -101,7 +102,7 @@ class ShiftTemplateRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def set_active(template_id: int, is_active: bool) -> Union[ShiftTemplate, dict]:
@@ -118,4 +119,4 @@ class ShiftTemplateRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})

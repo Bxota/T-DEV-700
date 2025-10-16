@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiTypes
 from drf_spectacular.views import SpectacularAPIView
 
-from api.permissions import HasTeamTagPermission
+from api.permissions import IsTeamManager
 
 @extend_schema(
     operation_id="health",
@@ -39,7 +39,7 @@ def health_authenticated(request):
     responses={200: OpenApiTypes.OBJECT},
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def health_manager(request):
     user = request.user
     return Response({"message": f"Hello {user.first_name}, you are a manager!"})

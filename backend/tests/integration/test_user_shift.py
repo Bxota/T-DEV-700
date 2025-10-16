@@ -223,7 +223,7 @@ class TestUserShiftDetail(BaseAPITest):
         shift = self._make_shift()
         mock_delete.return_value = True
 
-        self.auth_as(self.manager_token)  # besoin de HasTeamTagPermission
+        self.auth_as(self.manager_token)  # besoin de IsTeamManager
         url = f"/api/users/{self.user.id}/shifts/{shift.id}/"
         resp = self.client.delete(url)
 

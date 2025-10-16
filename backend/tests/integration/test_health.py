@@ -32,10 +32,10 @@ def test_health_manager_requires_permission(api_client, auth_headers, manager_ro
 def test_health_manager_with_permission(api_client, auth_headers, monkeypatch):
     # On ne teste pas la permission ici, seulement le contrôleur :
     # on force la permission à True pour vérifier le 200.
-    from api.permissions import HasTeamTagPermission
+    from api.permissions import IsTeamManager
 
     monkeypatch.setattr(
-        HasTeamTagPermission,
+        IsTeamManager,
         "has_permission",
         lambda self, request, view: True,
     )

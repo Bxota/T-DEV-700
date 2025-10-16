@@ -15,7 +15,7 @@ from db_manager.serializers import ShiftSerializer
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter, OpenApiTypes
 )
-from api.permissions import HasTeamTagPermission
+from api.permissions import IsTeamManager
 
 
 @extend_schema(
@@ -99,7 +99,7 @@ class UserShiftDetail(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method in ("PUT", "DELETE"):
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
 
     def get(self, request, user_id, shift_id):
@@ -163,7 +163,7 @@ class UserShiftCollection(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method in ("POST", "PATCH", "DELETE"):
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
 
     def post(self, request, user_id):

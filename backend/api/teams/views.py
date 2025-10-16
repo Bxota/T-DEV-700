@@ -16,7 +16,7 @@ from drf_spectacular.utils import (
     extend_schema, extend_schema_view, OpenApiParameter
 )
 
-from api.permissions import HasTeamTagPermission
+from api.permissions import IsTeamManager
 
 @extend_schema_view(
     get=extend_schema(
@@ -28,7 +28,7 @@ from api.permissions import HasTeamTagPermission
     ),
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, HasTeamTagPermission])
+@permission_classes([IsAuthenticated, IsTeamManager])
 def get_team_reports(request, team_id):
     team = TeamManager.get_team_by_id(team_id)
     members = UserManager.get_users_by_team_id(team_id)
@@ -63,7 +63,7 @@ class TeamCollection(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method == "POST":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return super().get_permissions()
 
     def get(self, request):
@@ -120,9 +120,9 @@ class TeamDetail(APIView):
         if self.request.method == "GET":
             return [IsAuthenticated()]
         if self.request.method == "PUT":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         if self.request.method == "DELETE":
-            return [IsAuthenticated(), HasTeamTagPermission()]
+            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
 
     def get(self, request, team_id):

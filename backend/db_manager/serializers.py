@@ -82,14 +82,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 class ShiftTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShiftTemplate
-        fields = ["id", "name", "team", "role", "default_duration_minutes", "timezone", "is_active"]
-
-class ShiftRuleSerializer(serializers.ModelSerializer):
-    assigned_users = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    class Meta:
-        model = ShiftRule
-        fields = ["id", "template", "weekday", "start_local_time", "duration_minutes",
-                  "effective_from", "effective_to", "apply_to_whole_team", "assigned_users"]
+        fields = ["id", "name", "team_id", "role_id", "default_duration_minutes", "timezone", "is_active"]
 
 class ShiftExceptionSerializer(serializers.ModelSerializer):
     class Meta:

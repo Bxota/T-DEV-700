@@ -3,7 +3,7 @@ from typing import Optional, Iterable, Union
 from datetime import date, time as time_type
 from django.db import IntegrityError, transaction
 from db_manager.models import ShiftRule, ShiftTemplate, Users
-
+from rest_framework.exceptions import APIException
 
 class ShiftRuleRepository:
     @staticmethod
@@ -48,7 +48,7 @@ class ShiftRuleRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def get_by_id(rule_id: int) -> Union[ShiftRule, dict]:
@@ -63,7 +63,7 @@ class ShiftRuleRepository:
                 return {"error": "ShiftRule not found"}
             return rule
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def list_by_template(template_id: int):
@@ -105,7 +105,7 @@ class ShiftRuleRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def assign_users(rule_id: int, user_ids: Iterable[int]) -> Union[ShiftRule, dict]:
@@ -128,7 +128,7 @@ class ShiftRuleRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def clear_assigned_users(rule_id: int) -> Union[ShiftRule, dict]:
@@ -139,7 +139,7 @@ class ShiftRuleRepository:
             rule.assigned_users.clear()
             return rule
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
     def delete_rule(rule_id: int) -> Union[dict, None]:
@@ -152,4 +152,4 @@ class ShiftRuleRepository:
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:
-            return {"error": str(e)}
+            return APIException({"error": "internal server error.", "status_code": 500})
