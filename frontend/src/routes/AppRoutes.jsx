@@ -1,13 +1,13 @@
 // src/routes/AppRoutes.jsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-
 import Dashboard from '../pages/DashBoard/Dashboard';
-import Manager   from '../pages/Manager/Manager';
-import Profile   from '../pages/Profile/Profile';
-import Team      from '../pages/Team/Team';
-import Login     from '../pages/Login/Login';
-import Users     from '../pages/Users/Users';
+import Manager from '../pages/Manager/Manager';
+import Profile from '../pages/Profile/Profile';
+import Team from '../pages/Team/Team';
+import Login from '../pages/Login/Login'
+import Users from '../pages/Users/Users';
+import Horaires from '../pages/Horaires/Horaires';
 
 import ProtectedRoute from './ProtectedRoute';
 import { ROLE } from '../acl/roles';
@@ -46,6 +46,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute allow={[ROLE.MANAGER]} />}>
         <Route path="/manager" element={<Manager />} />
         <Route path="/users"   element={<Users />} />
+        <Route path="/horaires" element={<Horaires />} />
       </Route>
 
       <Route path="/403" element={<Forbidden />} />

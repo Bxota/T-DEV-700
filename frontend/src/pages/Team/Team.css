@@ -1,29 +1,49 @@
-.page-container {
-  margin-left: 250px;
-  padding: 40px 60px;
-  color: #222;
-  background-color: #f8f9fa;
+/* ------- LAYOUT PRINCIPAL IDENTIQUE À HORAIRES ------- */
+
+.teams-main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
   min-height: 100vh;
+  background-color: #f8f9fa;
 }
 
-.page-header {
+.teams-page-container {
+  padding: 40px 60px;
+  color: #222;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-right: 40px;
+}
+
+.teams-page-container:first-child {
+  margin-top: 40px;
+}
+
+.teams-page-container:last-child {
+  margin-bottom: 40px;
+}
+
+.teams-page-header {
   margin-bottom: 30px;
   text-align: center;
   position: relative;
 }
 
-.page-title {
+.teams-page-title {
   font-size: 28px;
   font-weight: bold;
   color: #111;
 }
 
-.page-description {
+.teams-page-description {
   font-size: 16px;
   color: #555;
 }
 
-.add-button {
+/* Bouton d'ajout d'équipe identique aux horaires */
+.teams-add-button {
   position: absolute;
   top: 0;
   right: 0;
@@ -37,17 +57,20 @@
   transition: background-color 0.2s;
 }
 
-.add-button:hover { background-color: #3375bb; }
+.teams-add-button:hover { 
+  background-color: #3375bb; 
+}
 
-.team-table-container {
+/* Container et tableau identiques aux horaires */
+.teams-table-container {
   display: flex;
   justify-content: center;
   width: 100%;
 }
 
-.team-table {
-  width: 80%;
-  max-width: 1000px;
+.teams-table {
+  width: 90%;
+  max-width: 1200px;
   border-collapse: collapse;
   background-color: #fff;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
@@ -55,22 +78,33 @@
   overflow: hidden;
 }
 
-.team-table thead { background-color: #5289c3; color: white; }
+.teams-table thead { 
+  background-color: #5289c3; 
+  color: white; 
+}
 
-.team-table th,
-.team-table td {
+.teams-table th,
+.teams-table td {
   text-align: left;
   padding: 15px 20px;
   border-bottom: 1px solid #e0e0e0;
 }
 
-.team-table tbody tr:hover { background-color: #f5f5f5; }
+.teams-table tbody tr:hover { 
+  background-color: #f5f5f5; 
+}
 
-.team-table td { color: #333; font-size: 16px; }
+.teams-table td { 
+  color: #333; 
+  font-size: 16px; 
+}
 
-.actions-cell { text-align: center; }
+.teams-actions-cell { 
+  text-align: center; 
+}
 
-.btn {
+/* Boutons d'actions identiques aux horaires */
+.teams-btn {
   border: none;
   border-radius: 6px;
   padding: 8px 12px;
@@ -79,136 +113,333 @@
   transition: background-color 0.2s ease, transform 0.05s ease;
   margin: 0 5px;
 }
-.btn:active { transform: scale(0.97); }
 
-.btn-edit { background-color: #5289c3; color: white; }
-.btn-edit:hover { background-color: rgb(14, 75, 168); }
+.teams-btn:active { 
+  transform: scale(0.97); 
+}
 
-.btn-delete { background-color: #dc3545; color: white; }
-.btn-delete:hover { background-color: #b02a37; }
+.teams-btn-edit { 
+  background-color: #5289c3; 
+  color: white; 
+}
 
-.btn-add-member { background-color: #28a745; color: white; }
-.btn-add-member:hover { background-color: #218838; }
+.teams-btn-edit:hover { 
+  background-color: rgb(14, 75, 168); 
+}
 
+.teams-btn-delete { 
+  background-color: #dc3545; 
+  color: white; 
+}
 
-/* ------- Modales ------- */
+.teams-btn-delete:hover { 
+  background-color: #b02a37; 
+}
 
-.modal-overlay {
+.teams-btn-save { 
+  background-color: #28a745; 
+  color: white; 
+}
+
+.teams-btn-save:hover { 
+  background-color: #218838; 
+}
+
+.teams-btn-cancel { 
+  background-color: #6c757d; 
+  color: white; 
+}
+
+.teams-btn-cancel:hover { 
+  background-color: #5a6268; 
+}
+
+.teams-btn-members {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.teams-btn-members:hover {
+  background-color: #138496;
+}
+
+/* ------- MODALES TEAMS IDENTIQUES AUX HORAIRES ------- */
+
+/* Overlay principal pour toutes les modales */
+.teams-modal-overlay {
   position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+  animation: overlayFadeIn 0.2s ease-out;
 }
 
-.modal {
+/* Base commune pour toutes les modales */
+.teams-modal {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+}
+
+/* Modal de formulaire (ajout/modification) */
+.teams-form-modal {
+  width: 580px;
+  max-width: 95vw;
+  padding: 0;
+}
+
+/* Modal de suppression */
+.teams-delete-modal {
+  width: 450px;
+  max-width: 90vw;
   padding: 30px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-.modal h2 {
-  margin-bottom: 20px;
-  font-size: 20px;
-  color: #111;
   text-align: center;
 }
 
-.modal label {
-  display: block;
-  margin: 10px 0 5px;
-  font-weight: 600;
-  color: #333;
+/* Modal d'erreur */
+.teams-error-modal {
+  width: 500px;
+  max-width: 90vw;
+  padding: 0;
 }
 
-.modal input {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 15px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 15px;
+/* Modal des membres */
+.teams-members-modal {
+  width: 600px;
+  max-width: 95vw;
+  padding: 0;
 }
 
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.btn-save { background-color: #28a745; color: white; }
-.btn-save:hover { background-color: #218838; }
-
-.btn-cancel { background-color: #6c757d; color: white; }
-.btn-cancel:hover { background-color: #5a6268; }
-
-/* Modale de suppression */
-.delete-modal { text-align: center; }
-.delete-modal p {
-  color: #333;
-  font-size: 16px;
-  margin: 20px 0 25px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
-  text-align: center;
-}
-.delete-modal strong { color: #b02a37; font-weight: bold; word-break: break-word; }
-.delete-modal .modal-buttons { justify-content: center; }
-
-/* Modales membres / édition */
-.members-modal { width: 560px; max-width: 92%; padding: 24px; }
-
-.modal-header {
+/* En-tête des modales */
+.teams-modal-header {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  padding: 25px 30px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px 12px 0 0;
 }
 
-.modal-header h2 {
+.teams-modal-header h2 {
   margin: 0;
   font-size: 20px;
-  color: #111;
+  font-weight: 600;
+  color: #2c3e50;
   text-align: center;
-  flex: 1;         /* titre centré même avec la croix à droite */
+  flex: 1;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-/* Bouton croix bien centré */
-.modal-close {
+/* Bouton de fermeture */
+.teams-modal-close {
   position: absolute;
-  right: 16px;
+  right: 15px;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  appearance: none;
-  -webkit-appearance: none;
-  background: #e9ecef;
-  border: none;
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.2);
   border-radius: 50%;
-  color: #333;
-  font-size: 18px;
+  color: #dc3545;
+  font-size: 16px;
   font-weight: bold;
-  line-height: 1;
   cursor: pointer;
-  transition: background .2s ease, transform .1s ease;
+  transition: all 0.2s ease;
 }
-.modal-close:hover { background: #dce0e3; transform: translateY(-50%) scale(1.08); }
-.modal-close:active { transform: translateY(-50%) scale(0.96); }
 
+.teams-modal-close:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.teams-modal-close:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Corps des modales de formulaire */
+.teams-form-modal .teams-modal-body,
+.teams-form-modal > div:not(.teams-modal-header):not(.teams-modal-buttons),
+.teams-members-modal .teams-modal-body,
+.teams-members-modal > div:not(.teams-modal-header):not(.teams-modal-buttons) {
+  padding: 25px 30px;
+}
+
+/* Labels et inputs */
+.teams-modal label {
+  display: block;
+  margin: 18px 0 8px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.teams-modal label:first-of-type {
+  margin-top: 0;
+}
+
+.teams-modal input,
+.teams-modal select,
+.teams-modal textarea {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  background: #fafbfc;
+}
+
+.teams-modal input:focus,
+.teams-modal select:focus,
+.teams-modal textarea:focus {
+  outline: none;
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.teams-modal input:hover,
+.teams-modal select:hover,
+.teams-modal textarea:hover {
+  border-color: #ced4da;
+  background: white;
+}
+
+/* Inputs spéciaux */
+.teams-modal input[type="checkbox"] {
+  width: auto;
+  margin-right: 10px;
+  margin-bottom: 0;
+  transform: scale(1.2);
+  accent-color: #5289c3;
+}
+
+.teams-modal input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.teams-modal input[type="number"]::-webkit-outer-spin-button,
+.teams-modal input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Labels avec checkboxes */
+.teams-modal label input[type="checkbox"] {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.teams-modal label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin: 10px 0;
+  transition: background-color 0.2s ease;
+}
+
+.teams-modal label:has(input[type="checkbox"]):hover {
+  background: #e9ecef;
+}
+
+/* Zone d'information */
+.teams-modal-info {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border-left: 4px solid #5289c3;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.teams-modal-info p {
+  margin: 10px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #37474f;
+}
+
+.teams-modal-info p strong {
+  color: #1976d2;
+  font-weight: 600;
+}
+
+/* Zone de sélection d'utilisateurs identique aux horaires */
+.teams-modal .user-selection-area {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 2px solid #e9ecef;
+  padding: 15px;
+  border-radius: 8px;
+  background: #fafbfc;
+  margin-bottom: 15px;
+}
+
+.teams-modal .user-selection-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.teams-modal .user-selection-area::-webkit-scrollbar-track {
+  background: #f1f3f4;
+  border-radius: 3px;
+}
+
+.teams-modal .user-selection-area::-webkit-scrollbar-thumb {
+  background: #c1c8cd;
+  border-radius: 3px;
+}
+
+.teams-modal .user-selection-area::-webkit-scrollbar-thumb:hover {
+  background: #a6b1ba;
+}
+
+.teams-modal .user-selection-area label {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.teams-modal .user-selection-area label:hover {
+  background: #e8f4fd;
+  border-color: #5289c3;
+  transform: translateX(3px);
+}
+
+/* Liste des membres */
 .members-list {
   margin-top: 16px;
   max-height: 50vh;
@@ -221,49 +452,342 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e5e7eb;
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   font-size: 15px;
-  color: #222;
+  color: #495057;
+  transition: all 0.2s ease;
 }
 
-.members-empty { text-align: center; color: #666; margin: 24px 0 8px; }
+.member-item:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-.btn-sm { padding: 6px 10px; font-size: 13px; }
+.members-empty { 
+  text-align: center; 
+  color: #6c757d; 
+  margin: 24px 0 8px;
+  font-style: italic;
+}
+
+.btn-sm { 
+  padding: 6px 12px; 
+  font-size: 13px;
+  border-radius: 4px;
+  font-weight: 500;
+}
 
 .member-add-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
-  margin: 12px 0 6px;
+  gap: 12px;
+  margin: 15px 0 10px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
 .member-add-row select {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 2px solid #e9ecef;
   font-size: 15px;
   background-color: white;
-  color: #222;
+  color: #495057;
   width: 100%;
+  transition: all 0.2s ease;
 }
+
 .member-add-row select:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
 }
 
-/* Effet apparition modale */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.member-add-row select:hover {
+  border-color: #ced4da;
 }
 
-/* Surlignage optionnel */
+/* Boutons de modal identiques aux horaires */
+.teams-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 30px 25px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.teams-delete-modal .teams-modal-buttons {
+  justify-content: center;
+  background: transparent;
+  border-top: none;
+  padding: 25px 0 0;
+}
+
+/* Styles des boutons dans les modales (version identique aux horaires) */
+.teams-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.teams-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.teams-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.teams-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: width 0.3s ease, height 0.3s ease;
+  transform: translate(-50%, -50%);
+}
+
+.teams-btn:hover::before:not(:disabled) {
+  width: 100px;
+  height: 100px;
+}
+
+.teams-btn-save {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.teams-btn-save:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1ca085);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.teams-btn-cancel {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.teams-btn-cancel:hover {
+  background: linear-gradient(135deg, #5a6268, #495057);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+.teams-btn-delete {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.teams-btn-delete:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.teams-btn-edit {
+  background: linear-gradient(135deg, #5289c3, #3875b3);
+  color: white;
+  box-shadow: 0 4px 15px rgba(82, 137, 195, 0.3);
+}
+
+.teams-btn-edit:hover {
+  background: linear-gradient(135deg, #3875b3, #2e6ba3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(82, 137, 195, 0.4);
+}
+
+.teams-btn-members {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+}
+
+.teams-btn-members:hover {
+  background: linear-gradient(135deg, #138496, #117a8b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+}
+
+/* Modal de suppression spécifique */
+.teams-delete-modal h2 {
+  color: #495057;
+  font-size: 18px;
+  margin: 0 0 25px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.teams-delete-modal strong {
+  color: #dc3545;
+  font-weight: 700;
+}
+
+/* Modal d'erreur spécifique */
+.teams-error-modal .teams-modal-body {
+  padding: 25px 30px;
+}
+
+.teams-error-modal .teams-modal-header h2 {
+  color: #dc3545;
+}
+
+.teams-error-modal .error-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border-radius: 8px;
+  border-left: 4px solid #dc3545;
+}
+
+.teams-error-modal .error-icon {
+  font-size: 28px;
+  color: #dc3545;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.teams-error-modal .error-message {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #721c24;
+  font-weight: 500;
+}
+
+/* Surlignage optionnel pour l'édition en ligne */
 .editing-row {
   background-color: #e8f0fe !important;
   box-shadow: inset 0 0 5px rgba(0, 123, 255, 0.5);
   transition: background-color 0.3s ease;
+}
+
+/* Animations */
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive design pour les modales */
+@media (max-width: 768px) {
+  .teams-form-modal,
+  .teams-members-modal {
+    width: 95vw;
+    max-height: 85vh;
+    margin: 20px 10px;
+  }
+  
+  .teams-modal-header {
+    padding: 20px 20px 15px;
+  }
+  
+  .teams-form-modal .teams-modal-body,
+  .teams-form-modal > div:not(.teams-modal-header):not(.teams-modal-buttons),
+  .teams-members-modal .teams-modal-body,
+  .teams-members-modal > div:not(.teams-modal-header):not(.teams-modal-buttons) {
+    padding: 20px;
+  }
+  
+  .teams-modal-buttons {
+    padding: 15px 20px 20px;
+    flex-direction: column;
+  }
+  
+  .teams-btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .teams-delete-modal .teams-modal-buttons {
+    flex-direction: row;
+  }
+  
+  .teams-delete-modal .teams-btn {
+    width: auto;
+    flex: 1;
+  }
+  
+  .member-add-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .teams-modal-overlay {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+  
+  .teams-form-modal,
+  .teams-members-modal {
+    width: 100%;
+    max-height: calc(100vh - 60px);
+  }
+  
+  .teams-modal-header h2 {
+    font-size: 18px;
+  }
+  
+  .teams-modal label {
+    font-size: 13px;
+  }
+  
+  .teams-modal input,
+  .teams-modal select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+}
+
+/* ------- SUPPRESSION DES ANCIENS STYLES ------- */
+
+/* Suppression complète de tous les anciens styles */
+.page-container,
+.page-header,
+.page-title,
+.page-description,
+.team-table-container,
+.team-table,
+.actions-cell {
+  /* Remplacés par les nouvelles classes teams-* */
 }

@@ -1,0 +1,1063 @@
+.horaires-main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* Suppression de l'ancien template-add-button - remplacé par template-generate-button */
+.template-generate-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.template-generate-button:hover {
+  background-color: #138496;
+}
+
+.horaires-page-container {
+  padding: 40px 60px;
+  color: #222;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-right: 40px;
+}
+
+.horaires-page-container:first-child {
+  margin-top: 40px;
+}
+
+.horaires-page-container:last-child {
+  margin-bottom: 40px;
+}
+
+.horaires-page-header {
+  margin-bottom: 30px;
+  text-align: center;
+  position: relative;
+}
+
+.horaires-page-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #111;
+}
+
+.horaires-page-description {
+  font-size: 16px;
+  color: #555;
+}
+
+.horaires-add-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #5289c3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.horaires-add-button:hover { 
+  background-color: #3375bb; 
+}
+
+.horaires-table-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.horaires-table {
+  width: 90%;
+  max-width: 1200px;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.horaires-table thead { 
+  background-color: #5289c3; 
+  color: white; 
+}
+
+.horaires-table th,
+.horaires-table td {
+  text-align: left;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.horaires-table tbody tr:hover { 
+  background-color: #f5f5f5; 
+}
+
+.horaires-table td { 
+  color: #333; 
+  font-size: 16px; 
+}
+
+.horaires-actions-cell { 
+  text-align: center; 
+}
+
+.horaires-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.05s ease;
+  margin: 0 5px;
+}
+
+.horaires-btn:active { 
+  transform: scale(0.97); 
+}
+
+.horaires-btn-edit { 
+  background-color: #5289c3; 
+  color: white; 
+}
+
+.horaires-btn-edit:hover { 
+  background-color: rgb(14, 75, 168); 
+}
+
+.horaires-btn-delete { 
+  background-color: #dc3545; 
+  color: white; 
+}
+
+.horaires-btn-delete:hover { 
+  background-color: #b02a37; 
+}
+
+.horaires-btn-save { 
+  background-color: #28a745; 
+  color: white; 
+}
+
+.horaires-btn-save:hover { 
+  background-color: #218838; 
+}
+
+.horaires-btn-cancel { 
+  background-color: #6c757d; 
+  color: white; 
+}
+
+.horaires-btn-cancel:hover { 
+  background-color: #5a6268; 
+}
+
+/* ------- MODALES HORAIRES ------- */
+
+/* Overlay principal pour toutes les modales */
+.horaires-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+  animation: overlayFadeIn 0.2s ease-out;
+}
+
+/* Base commune pour toutes les modales */
+.horaires-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+  padding: 10px;
+}
+
+/* Modal de formulaire (ajout/modification) */
+.horaires-form-modal {
+  width: 580px;
+  max-width: 95vw;
+}
+
+/* Modal de suppression */
+.horaires-delete-modal {
+  width: 450px;
+  max-width: 90vw;
+  padding: 30px;
+  text-align: center;
+}
+
+/* Modal d'erreur */
+.horaires-error-modal {
+  width: 500px;
+  max-width: 90vw;
+  padding: 0;
+}
+
+/* En-tête des modales */
+.horaires-modal-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 25px 30px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.horaires-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+  flex: 1;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Bouton de fermeture */
+.horaires-modal-close {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: 50%;
+  color: #dc3545;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.horaires-modal-close:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.horaires-modal-close:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Corps des modales de formulaire */
+.horaires-form-modal .horaires-modal-body,
+.horaires-form-modal > div:not(.horaires-modal-header):not(.horaires-modal-buttons) {
+  padding: 25px 30px;
+}
+
+/* Labels et inputs */
+.horaires-modal label {
+  display: block;
+  margin: 18px 0 8px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.horaires-modal label:first-of-type {
+  margin-top: 0;
+}
+
+.horaires-modal input,
+.horaires-modal select,
+.horaires-modal textarea {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  background: #fafbfc;
+}
+
+.horaires-modal input:focus,
+.horaires-modal select:focus,
+.horaires-modal textarea:focus {
+  outline: none;
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.horaires-modal input:hover,
+.horaires-modal select:hover,
+.horaires-modal textarea:hover {
+  border-color: #ced4da;
+  background: white;
+}
+
+/* Inputs spéciaux */
+.horaires-modal input[type="checkbox"] {
+  width: auto;
+  margin-right: 10px;
+  margin-bottom: 0;
+  transform: scale(1.2);
+  accent-color: #5289c3;
+}
+
+.horaires-modal input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.horaires-modal input[type="number"]::-webkit-outer-spin-button,
+.horaires-modal input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Labels avec checkboxes */
+.horaires-modal label input[type="checkbox"] {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.horaires-modal label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin: 10px 0;
+  transition: background-color 0.2s ease;
+}
+
+.horaires-modal label:has(input[type="checkbox"]):hover {
+  background: #e9ecef;
+}
+
+/* Zone d'information */
+.horaires-modal-info {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border-left: 4px solid #5289c3;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.horaires-modal-info p {
+  margin: 10px 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #37474f;
+}
+
+.horaires-modal-info p strong {
+  color: #1976d2;
+  font-weight: 600;
+}
+
+/* Zone de sélection d'utilisateurs */
+.horaires-modal .user-selection-area {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 2px solid #e9ecef;
+  padding: 15px;
+  border-radius: 8px;
+  background: #fafbfc;
+  margin-bottom: 15px;
+}
+
+.horaires-modal .user-selection-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.horaires-modal .user-selection-area::-webkit-scrollbar-track {
+  background: #f1f3f4;
+  border-radius: 3px;
+}
+
+.horaires-modal .user-selection-area::-webkit-scrollbar-thumb {
+  background: #c1c8cd;
+  border-radius: 3px;
+}
+
+.horaires-modal .user-selection-area::-webkit-scrollbar-thumb:hover {
+  background: #a6b1ba;
+}
+
+.horaires-modal .user-selection-area label {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.horaires-modal .user-selection-area label:hover {
+  background: #e8f4fd;
+  border-color: #5289c3;
+  transform: translateX(3px);
+}
+
+/* Boutons de modal */
+.horaires-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 30px 25px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.horaires-delete-modal .horaires-modal-buttons {
+  justify-content: center;
+  background: transparent;
+  border-top: none;
+  padding: 25px 0 0;
+}
+
+/* Styles des boutons (hérités mais avec améliorations) */
+.horaires-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.horaires-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.horaires-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.horaires-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: width 0.3s ease, height 0.3s ease;
+  transform: translate(-50%, -50%);
+}
+
+.horaires-btn:hover::before:not(:disabled) {
+  width: 100px;
+  height: 100px;
+}
+
+.horaires-btn-save {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.horaires-btn-save:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1ca085);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.horaires-btn-cancel {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.horaires-btn-cancel:hover {
+  background: linear-gradient(135deg, #5a6268, #495057);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+.horaires-btn-delete {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.horaires-btn-delete:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.horaires-btn-edit {
+  background: linear-gradient(135deg, #5289c3, #3875b3);
+  color: white;
+  box-shadow: 0 4px 15px rgba(82, 137, 195, 0.3);
+}
+
+.horaires-btn-edit:hover {
+  background: linear-gradient(135deg, #3875b3, #2e6ba3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(82, 137, 195, 0.4);
+}
+
+/* Modal de suppression spécifique */
+.horaires-delete-modal h2 {
+  color: #495057;
+  font-size: 18px;
+  margin: 0 0 25px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.horaires-delete-modal strong {
+  color: #dc3545;
+  font-weight: 700;
+}
+
+/* Modal d'erreur spécifique */
+.horaires-error-modal .horaires-modal-body {
+  padding: 25px 30px;
+}
+
+.horaires-error-modal .horaires-modal-header h2 {
+  color: #dc3545;
+}
+
+.horaires-error-modal .error-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border-radius: 8px;
+  border-left: 4px solid #dc3545;
+}
+
+.horaires-error-modal .error-icon {
+  font-size: 28px;
+  color: #dc3545;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.horaires-error-modal .error-message {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #721c24;
+  font-weight: 500;
+}
+
+/* Zone de période calculée pour la génération */
+.period-display {
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8e8 100%);
+  padding: 18px;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.period-display strong {
+  color: #155724;
+  font-weight: 600;
+}
+
+.period-display em {
+  color: #6c757d;
+  font-style: normal;
+  font-size: 13px;
+}
+
+/* Zone d'information automatique */
+.auto-info {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  padding: 18px;
+  border-radius: 8px;
+  border-left: 4px solid #17a2b8;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.auto-info p {
+  margin: 0;
+  color: #0c5460;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive design pour les modales */
+@media (max-width: 768px) {
+  .horaires-form-modal {
+    width: 95vw;
+    max-height: 85vh;
+    margin: 20px 10px;
+  }
+  
+  .horaires-modal-header {
+    padding: 20px 20px 15px;
+  }
+  
+  .horaires-form-modal .horaires-modal-body,
+  .horaires-form-modal > div:not(.horaires-modal-header):not(.horaires-modal-buttons) {
+    padding: 20px;
+  }
+  
+  .horaires-modal-buttons {
+    padding: 15px 20px 20px;
+    flex-direction: column;
+  }
+  
+  .horaires-btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .horaires-delete-modal .horaires-modal-buttons {
+    flex-direction: row;
+  }
+  
+  .horaires-delete-modal .horaires-btn {
+    width: auto;
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .horaires-modal-overlay {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+  
+  .horaires-form-modal {
+    width: 100%;
+    max-height: calc(100vh - 60px);
+  }
+  
+  .horaires-modal-header h2 {
+    font-size: 18px;
+  }
+  
+  .horaires-modal label {
+    font-size: 13px;
+  }
+  
+  .horaires-modal input,
+  .horaires-modal select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+}
+
+/* Styles spéciaux pour les inputs date (datepickers) */
+.horaires-modal input[type="date"] {
+  position: relative;
+  background: #fafbfc;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.horaires-modal input[type="date"]:focus {
+  outline: none;
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.horaires-modal input[type="date"]:hover {
+  border-color: #ced4da;
+  background: white;
+}
+
+/* Style pour le calendrier déroulant */
+.horaires-modal input[type="date"]::-webkit-calendar-picker-indicator {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E") no-repeat center;
+  background-size: 16px;
+  cursor: pointer;
+  opacity: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.horaires-modal input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(82, 137, 195, 0.1);
+}
+
+/* Pour Firefox */
+.horaires-modal input[type="date"]::-moz-focus-inner {
+  border: 0;
+}
+
+/* Pour Edge et autres navigateurs */
+.horaires-modal input[type="date"]::-ms-clear {
+  display: none;
+}
+
+.horaires-modal input[type="date"]::-ms-reveal {
+  display: none;
+}
+
+/* Style amélioré pour les labels des dates */
+.horaires-modal label:has(+ input[type="date"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.horaires-modal label:has(+ input[type="date"])::before {
+  content: "📅";
+  font-size: 16px;
+}
+
+/* Conteneur pour les dates côte à côte */
+.date-range-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-field label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-field input[type="date"] {
+  margin-bottom: 0;
+}
+
+/* Style pour les dates invalides */
+.horaires-modal input[type="date"]:invalid {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.horaires-modal input[type="date"]:invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+/* Styles spéciaux pour les inputs time (format 24h) */
+.horaires-modal input[type="time"] {
+  position: relative;
+  background: #fafbfc;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: 'Courier New', monospace; /* Police monospace pour meilleur alignement */
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.horaires-modal input[type="time"]:focus {
+  outline: none;
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.horaires-modal input[type="time"]:hover {
+  border-color: #ced4da;
+  background: white;
+}
+
+/* Forcer le format 24h - masquer l'indicateur AM/PM */
+.horaires-modal input[type="time"]::-webkit-calendar-picker-indicator {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z'/%3E%3Cpath d='M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z'/%3E%3C/svg%3E") no-repeat center;
+  background-size: 16px;
+  cursor: pointer;
+  opacity: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.horaires-modal input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(82, 137, 195, 0.1);
+}
+
+/* Pour forcer le format 24h sur différents navigateurs */
+.horaires-modal input[type="time"]::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+
+.horaires-modal input[type="time"]::-webkit-datetime-edit-hour-field {
+  color: #495057;
+  font-weight: 600;
+}
+
+.horaires-modal input[type="time"]::-webkit-datetime-edit-minute-field {
+  color: #495057;
+  font-weight: 600;
+}
+
+.horaires-modal input[type="time"]::-webkit-datetime-edit-text {
+  color: #6c757d;
+  font-weight: 600;
+}
+
+/* Pour Firefox */
+.horaires-modal input[type="time"]::-moz-focus-inner {
+  border: 0;
+}
+
+/* Style pour les valeurs invalides */
+.horaires-modal input[type="time"]:invalid {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.horaires-modal input[type="time"]:invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+/* Label amélioré pour l'heure */
+.horaires-modal label:has(+ input[type="time"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.horaires-modal label:has(+ input[type="time"])::before {
+  content: "🕐";
+  font-size: 16px;
+}
+
+/* Responsive pour les inputs time */
+@media (max-width: 768px) {
+  .horaires-modal input[type="time"] {
+    font-size: 16px; /* Évite le zoom sur mobile */
+    min-width: 100px;
+  }
+}
+
+/* Styles spéciaux pour les selects jour de la semaine */
+.horaires-modal select {
+  position: relative;
+  background: #fafbfc;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Suppression complète des flèches natives */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -ms-appearance: none;
+  
+  /* Suppression des flèches pour tous les navigateurs */
+  background-image: none;
+  
+  /* Pour Internet Explorer/Edge */
+  select::-ms-expand {
+    display: none;
+  }
+}
+
+/* Suppression des flèches pour Firefox */
+.horaires-modal select {
+  -moz-appearance: textfield;
+}
+
+.horaires-modal select::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
+
+/* Suppression des flèches pour Webkit (Chrome, Safari, Edge) */
+.horaires-modal select::-webkit-appearance {
+  -webkit-appearance: none;
+}
+
+.horaires-modal select::-webkit-inner-spin-button,
+.horaires-modal select::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Focus et hover sans flèches */
+.horaires-modal select:focus {
+  outline: none;
+  border-color: #5289c3;
+  box-shadow: 0 0 0 3px rgba(82, 137, 195, 0.15);
+  background: white;
+  transform: translateY(-1px);
+  background-image: none;
+}
+
+.horaires-modal select:hover {
+  border-color: #ced4da;
+  background: white;
+  background-image: none;
+}
+
+/* Select spécifique pour jour de la semaine avec icône UNIQUEMENT à gauche */
+.weekday-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  padding-left: 40px;
+  padding-right: 16px;
+}
+
+.weekday-select:focus,
+.weekday-select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+
+/* Select template avec icône UNIQUEMENT à gauche */
+.template-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM6.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm6 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  padding-left: 40px;
+  padding-right: 16px;
+}
+
+.template-select:focus,
+.template-select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM6.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm6 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+
+/* Select timezone avec icône UNIQUEMENT à gauche */
+.timezone-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3Cpath d='m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  padding-left: 40px;
+  padding-right: 16px;
+}
+
+.timezone-select:focus,
+.timezone-select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235289c3' viewBox='0 0 16 16'%3E%3Cpath d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3Cpath d='m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+
+/* Select désactivé sans flèches */
+.horaires-modal select:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+  background-image: none;
+}
+
+.weekday-select:disabled,
+.template-select:disabled,
+.timezone-select:disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+
+/* Responsive pour les selects sans flèches */
+@media (max-width: 768px) {
+  .horaires-modal select {
+    font-size: 16px; /* Évite le zoom sur mobile */
+    padding: 10px 12px;
+  }
+  
+  .weekday-select,
+  .template-select,
+  .timezone-select {
+    padding: 10px 12px 10px 35px;
+  }
+}
