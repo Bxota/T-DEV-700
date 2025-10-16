@@ -46,7 +46,7 @@ def get_user_reports(request, user_id):
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_user_clocks_summary():
+def get_user_clocks_summary(request, team_id):
     """
     Renvoie les heures de départs et d'arrivées de l'employé
     """

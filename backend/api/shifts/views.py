@@ -120,17 +120,17 @@ class UserShiftDetail(APIView):
             ShiftManager.check_db_element_exist(Shifts, shift_id)
             ShiftManager.check_is_user_shift(shift_id, user_id)
 
-            ShiftManager.check_body_element(request, "start_time")
-            ShiftManager.check_body_element(request, "end_time")
+            start_raw = ShiftManager.check_body_element(request, "start_time")
+            end_raw = ShiftManager.check_body_element(request, "end_time")
 
-            start_dt = datetime.fromisoformat(request.data.get("start_time").replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(request.data.get("end_time").replace("Z", "+00:00"))
+            start_dt = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
             ShiftManager.check_valid_shift_interval(start_time=start_dt, end_time=end_dt, user_id=user_id)
 
             ShiftManager.update_shift(
                 shift_id=shift_id,
-                start_time=request.data.get("start_time"),
-                end_time=request.data.get("end_time"),
+                start_time=start_dt,
+                end_time=end_dt,
             )
             return Response({"is_updated": True}, status=status.HTTP_200_OK)
         except APIException as e:
@@ -160,26 +160,33 @@ class UserShiftCollection(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.request.method == "GET":
+        if self.request.method in ("GET", "POST"):
             return [IsAuthenticated()]
-        if self.request.method in ("POST", "PATCH", "DELETE"):
-            return [IsAuthenticated(), IsTeamManager()]
         return [IsAuthenticated()]
+
+    def get(self, request, user_id):
+        try:
+            ShiftManager.check_db_element_exist(Users, user_id)
+            shifts = ShiftManager.list_shifts_by_user_id(user_id)
+            serialized = ShiftSerializer(shifts, many=True).data
+            return Response({"shifts": serialized}, status=status.HTTP_200_OK)
+        except APIException as e:
+            return Response(e.detail, status=e.status_code)
 
     def post(self, request, user_id):
         try:
-            ShiftManager.check_db_element_exist(Users, user_id)
-            ShiftManager.check_body_element(request, "start_time")
-            ShiftManager.check_body_element(request, "end_time")
+            user = ShiftManager.check_db_element_exist(Users, user_id)
+            start_raw = ShiftManager.check_body_element(request, "start_time")
+            end_raw = ShiftManager.check_body_element(request, "end_time")
 
-            start_dt = datetime.fromisoformat(request.data.get("start_time").replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(request.data.get("end_time").replace("Z", "+00:00"))
+            start_dt = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
             ShiftManager.check_valid_shift_interval(start_time=start_dt, end_time=end_dt, user_id=user_id)
 
             shift = ShiftManager.create_shift(
-                user=Users.objects.get(pk=user_id),
-                start_time=request.data.get("start_time"),
-                end_time=request.data.get("end_time"),
+                user=user,
+                start_time=start_raw,
+                end_time=end_raw,
             )
             return Response({"is_created": True, "id": shift.id}, status=status.HTTP_201_CREATED)
         except APIException as e:

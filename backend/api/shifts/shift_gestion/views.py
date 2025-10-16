@@ -596,11 +596,15 @@ def add_shift_exception(request, rule_id: int):
 @permission_classes([IsAuthenticated, IsTeamManager])
 def generate_team_shifts(request, team_id: int):
     try:
-        days = ShiftManager.check_query_param_element_int(request, "days") or "56"
-        
+        days_param = request.query_params.get("days")
+        if days_param:
+            days = ShiftManager.check_query_param_element_int(request, "days")
+        else:
+            days = 56
+
         if days < 1 or days > 365:
             return Response({"error": "days must be in [1..365]"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     except ValueError:
         return Response({"error": "days must be integer"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -674,8 +678,8 @@ def list_user_shifts_window(request, user_id: int):
         
         # fenêtre
         try:
-            from_str = ShiftManager.check_query_param_element_str("from")
-            to_str = ShiftManager.check_query_param_element_str("to")
+            from_str = ShiftManager.check_query_param_element_str(request, "from")
+            to_str = ShiftManager.check_query_param_element_str(request, "to")
             if not from_str or not to_str:
                 return Response({"error": "Query params 'from' and 'to' are required (ISO dates)."}, status=status.HTTP_400_BAD_REQUEST)
             
