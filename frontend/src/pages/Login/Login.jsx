@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import "./Login.css";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
-import { login } from "../../api/auth"; // se charge d'appeler /token/ et de stocker access/refresh
+import { login } from "../../api/auth";
 
 export default function Login() {
-  const { setUser, refreshUser } = useUser(); // 👈 on récupère refreshUser
+  const { setUser, refreshUser } = useUser();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -19,20 +19,14 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // login() doit enregistrer access/refresh dans localStorage et renvoyer { claims }
       const { claims } = await login(email.trim(), password);
-
-      // Hydrate rapidement le contexte (email, id) pour éviter l'état "non connecté"
       const minimalUser = {
         id: claims?.user_id ?? claims?.sub ?? null,
         email: claims?.email ?? email.trim(),
         username: claims?.username ?? null,
       };
       setUser(minimalUser);
-
-      // 🔥 met à jour immédiatement avec first_name/last_name via whoami
       await refreshUser();
-
       navigate("/");
     } catch (err) {
       const msg = err?.message || "Impossible de contacter le serveur.";
@@ -43,46 +37,48 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>Connexion</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Email</label>
-            <input
-              type="email"
-              placeholder="Entrez votre email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="username"
-            />
-          </div>
+    <div className="login-page"> {/* 👉 classe spécifique */}
+      <div className="login-container">
+        <div className="login-card">
+          <h2>Connexion</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="Entrez votre email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="username"
+              />
+            </div>
 
-          <div className="input-group">
-            <label>Mot de passe</label>
-            <input
-              type="password"
-              placeholder="Entrez votre mot de passe"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
+            <div className="input-group">
+              <label>Mot de passe</label>
+              <input
+                type="password"
+                placeholder="Entrez votre mot de passe"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
 
-          {errorMsg ? (
-            <p style={{ color: "crimson", marginTop: 8 }}>{errorMsg}</p>
-          ) : null}
+            {errorMsg ? (
+              <p style={{ color: "crimson", marginTop: 8 }}>{errorMsg}</p>
+            ) : null}
 
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Connexion..." : "Se connecter"}
-          </button>
-        </form>
+            <button type="submit" className="login-button" disabled={loading}>
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
 
-        <p className="register-text">
-          Pas encore de compte ? <a href="/register">Créer un compte</a>
-        </p>
+          <p className="register-text">
+            Pas encore de compte ? <a href="/register">Créer un compte</a>
+          </p>
+        </div>
       </div>
     </div>
   );

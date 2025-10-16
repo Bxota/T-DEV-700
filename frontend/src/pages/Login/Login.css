@@ -1,15 +1,25 @@
-.login-container {
+/* ✅ s'applique uniquement à la page Login */
+.login-page {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f8f9fa; 
-  margin-left: 250px; 
+  background-color: #f8f9fa;
   overflow-x: hidden;
+  margin-left: -100px;
+  /* 🪄 petit ajustement visuel pour compenser le bouton fixe */
+  padding-top: 40px;  /* descend légèrement le bloc */
+  box-sizing: border-box;
+}
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .login-card {
-  background-color: #f2f2f2; 
+  background-color: #f2f2f2;
   padding: 40px;
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -20,7 +30,7 @@
 
 h2 {
   margin-bottom: 20px;
-  color: #111; 
+  color: #111;
 }
 
 .input-group {
@@ -33,7 +43,7 @@ h2 {
 label {
   margin-bottom: 5px;
   font-weight: bold;
-  color: #222; 
+  color: #222;
 }
 
 input {
@@ -43,7 +53,7 @@ input {
   border: 1px solid #bbb;
   outline: none;
   background-color: white;
-  color: black; 
+  color: black;
 }
 
 input:focus {
