@@ -17,6 +17,14 @@ class IsTeamManager(BasePermission):
         if getattr(user, "is_staff", False) is True or getattr(user, "is_superuser", False) is True:
             return True
 
+        team_id = None
+        if hasattr(view, "kwargs"):
+            team_id = view.kwargs.get("team_id")
+        if team_id is None:
+            team_id = request.parser_context.get("kwargs", {}).get("team_id") if hasattr(request, "parser_context") else None
+        if team_id is None:
+            return self._is_manager(user)
+
         try:
             manager_role = Roles.objects.get(name__iexact="manager")
         except MultipleObjectsReturned:

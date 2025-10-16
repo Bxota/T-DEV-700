@@ -18,7 +18,6 @@ from drf_spectacular.utils import (
 from api.permissions import IsTeamManager
 
 
-
 @extend_schema(
     operation_id="user_shift_check_in",
     tags=["Shifts · Runtime"],
