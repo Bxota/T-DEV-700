@@ -249,7 +249,7 @@ class TestTeamReports(BaseAPITest):
     @patch("api.teams.views.UserManager.get_users_by_team_id")
     @patch("api.teams.views.TeamManager.get_team_by_id")
     def test_get_team_reports_ok(self, mock_get_team, mock_get_users, mock_generate):
-        # Endpoint protégé par HasTeamTagPermission → se connecter en manager
+        # Endpoint protégé par IsTeamManager → se connecter en manager
         self.auth_as(self.manager_token)
 
         # team renvoyée par le service

@@ -1,6 +1,8 @@
 from db_manager.models import Shifts
 from rest_framework.exceptions import APIException
 
+from datetime import datetime
+
 class ShiftRepository:
     @staticmethod
     def get_shifts():
@@ -20,7 +22,7 @@ class ShiftRepository:
     @staticmethod
     def get_shifts_by_team_id(team_id):
         try:
-            return Shifts.objects.filter(user__team_id=team_id).order_by('id')
+            return Shifts.objects.filter(user__team_id=team_id).select_related("user").order_by("start_time")
         except Exception as e:
             raise APIException({"error": "internal server error.", "status_code": 500})
 
@@ -86,3 +88,15 @@ class ShiftRepository:
             return {"error": "Shift not found."}
         except Exception as e:
             return {"error": str(e)}   
+        
+    @staticmethod
+    def list_shifts_by_user_id_and_date(user_id: str, start: datetime, end: datetime):
+        try:
+            Shifts.objects.filter(
+                user_id=user_id,
+                start_time__lt=end,
+                end_time__gt=start
+            ).order_by("start_time")
+        except Exception as e:
+            return APIException({"error": "internal server error.", "status_code": 500})
+        
