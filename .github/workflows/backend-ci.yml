@@ -19,15 +19,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose v2 (Debian/Ubuntu)
+      - name: Install Docker Compose v2 (user-level, portable)
         run: |
-          if docker compose version >/dev/null 2>&1; then
-            echo "docker compose already available"
-          else
-            sudo apt-get update
-            sudo apt-get install -y docker-compose-plugin
-            docker compose version || { echo "compose plugin install failed"; exit 1; }
-          fi
+          set -e
+          DEST="$HOME/.docker/cli-plugins"
+          mkdir -p "$DEST"
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64)   FILE="docker-compose-linux-x86_64" ;;
+            aarch64)  FILE="docker-compose-linux-aarch64" ;;
+            armv7l)   FILE="docker-compose-linux-armv7" ;;
+            *) echo "Unsupported arch: $ARCH"; exit 1 ;;
+          esac
+          VER="v2.27.0"
+          URL="https://github.com/docker/compose/releases/download/${VER}/${FILE}"
+          echo "Downloading $URL ..."
+          curl -sSL "$URL" -o "$DEST/docker-compose"
+          chmod +x "$DEST/docker-compose"
+          docker compose version
 
       - name: Show Docker Compose version
         run: docker compose version
