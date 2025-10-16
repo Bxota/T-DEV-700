@@ -24,6 +24,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: dev
       args:
         PYTHON_VERSION: ${PYTHON_VERSION}
         PORT_BACK: ${PORT_BACK}
@@ -62,6 +63,7 @@ services:
     build:
       context: ./reverseProxy
       dockerfile: Dockerfile
+      target: dev
       args:
         NGX_VERSION: ${NGX_VERSION}
     environment:
