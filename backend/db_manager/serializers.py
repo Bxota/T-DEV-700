@@ -88,3 +88,9 @@ class ShiftExceptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShiftException
         fields = ["id", "rule", "date", "is_skipped", "override_start_local_time", "override_duration_minutes", "note"]
+
+class ShiftRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShiftRule
+        fields = ["id", "template_id", "weekday", "start_local_time", "duration_minutes", 
+                  "effective_from", "effective_to", "apply_to_whole_team", "assigned_users"]
