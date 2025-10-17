@@ -1,6 +1,8 @@
 from db_manager.repositories.shifts_repository import ShiftRepository
 from rest_framework.exceptions import ValidationError
 from django.db.models.query import QuerySet
+from typing import Optional
+from django.utils import timezone
 
 class AbstractManager:
     def check_db_return(element, serializer):
@@ -77,3 +79,23 @@ class AbstractManager:
         if not ShiftRepository.get_shift_by_id(shift_id).user.id == user_id:
             raise ValidationError({"error": "This shift does not belong to this user."})
 
+
+    def parse_iso_query_datetime(raw_value: Optional[str]) -> timezone.datetime:
+        """Normalize query datetime strings (case-insensitive ISO 8601) before parsing."""
+        if not raw_value:
+            raise ValueError("Empty datetime string.")
+        normalized = raw_value.strip()
+        if not normalized:
+            raise ValueError("Empty datetime string.")
+        normalized = normalized.replace(" ", "T")
+        normalized = normalized.replace("t", "T")
+        normalized = normalized.replace("z", "Z")
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            parsed = timezone.datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError(f"Invalid isoformat string: '{raw_value}'") from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed

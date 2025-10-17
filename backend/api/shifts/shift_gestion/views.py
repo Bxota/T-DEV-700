@@ -1,14 +1,11 @@
 # api/shifts/views_manager.py
 from datetime import date, timedelta
-from django.utils import timezone
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework import status
-
-from datetime import timezone as dt_tz
 
 from api.permissions import IsTeamManager
 from api.shifts.service import ShiftManager
@@ -898,12 +895,9 @@ def list_user_shifts_window(request, user_id: int):
             if not from_str or not to_str:
                 return Response({"error": "Query params 'from' and 'to' are required (ISO dates)."}, status=status.HTTP_400_BAD_REQUEST)
             
-            start = timezone.datetime.fromisoformat(from_str)
-            end = timezone.datetime.fromisoformat(to_str)
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
+            start = ShiftManager.parse_iso_query_datetime(from_str)
+            end = ShiftManager.parse_iso_query_datetime(to_str)
+            
             if end <= start:
                 return Response({"error": "'to' must be after 'from'."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -987,17 +981,8 @@ def team_calendar_view(request, team_id: int):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            from_str = from_str.replace("Z", "+00:00")
-            to_str = to_str.replace("Z", "+00:00")
-
-            start = timezone.datetime.fromisoformat(from_str)
-            end = timezone.datetime.fromisoformat(to_str)
-
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=dt_tz.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=dt_tz.utc)
-
+            start = ShiftManager.parse_iso_query_datetime(from_str)
+            end = ShiftManager.parse_iso_query_datetime(to_str)
             if end <= start:
                 return Response(
                     {"error": "'to' must be after 'from'."},
