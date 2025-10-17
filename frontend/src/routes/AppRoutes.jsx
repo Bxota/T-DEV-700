@@ -39,7 +39,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute allow={[ROLE.MANAGER, ROLE.EMPLOYEE]} />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile"   element={<Profile />} />
-        <Route path="/team"      element={<Team />} />      {/* <= ICI maintenant */}
+        <Route path="/team"      element={<Team />} />   
       </Route>
 
       {/* 👇 Accès manager uniquement */}

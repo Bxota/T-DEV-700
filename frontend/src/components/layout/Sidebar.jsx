@@ -21,7 +21,7 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/dashboard', name: 'Tableau de bord', icon: '📊', allow: [ROLE.MANAGER, ROLE.EMPLOYEE] },
     { path: '/manager',   name: 'Gestionnaire',    icon: '👔', allow: [ROLE.MANAGER] },
-    { path: '/horaires',  name: 'Horaires', icon: '🗓️', allow: [ROLE.MANAGER, ROLE.EMPLOYEE] },
+    { path: '/horaires',  name: 'Horaires', icon: '🗓️', allow: [ROLE.MANAGER] },
     { path: '/team',      name: 'Équipe',          icon: '👥', allow: [ROLE.MANAGER, ROLE.EMPLOYEE] },
     { path: '/users',     name: 'Utilisateurs',    icon: '🧑‍💼', allow: [ROLE.MANAGER] },
     { path: '/profile',   name: 'Profil',          icon: '👤', allow: [ROLE.MANAGER, ROLE.EMPLOYEE] },
