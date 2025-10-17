@@ -147,10 +147,3 @@ class Shifts(models.Model):
         indexes = [
             models.Index(fields=["user", "start_time"]),
         ]
-        constraints = [
-            # Empêche l’overlap strict sur le même user (optionnel mais recommandé)
-            models.UniqueConstraint(
-                name="no_overlap_shifts_same_user",
-                fields=["user", "start_time", "end_time"],  # simple; si tu veux du vrai "no overlap", passer par une contrainte EXCLUDE Postgres
-            )
-        ]

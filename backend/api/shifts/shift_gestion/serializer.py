@@ -7,6 +7,9 @@ class CreateTemplateInput(serializers.Serializer):
     timezone = serializers.CharField(max_length=64, default="Europe/Paris")
     role_id = serializers.IntegerField(required=False, allow_null=True)
     is_active = serializers.BooleanField(default=True)
+    
+class UpdateTemplateInput(CreateTemplateInput):
+    pass
 
 class CreateRuleInput(serializers.Serializer):
     weekday = serializers.IntegerField(min_value=0, max_value=6)  # 0=Mon..6=Sun
@@ -31,3 +34,6 @@ class CreateExceptionInput(serializers.Serializer):
     override_start_local_time = serializers.TimeField(required=False, allow_null=True)
     override_duration_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     note = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    
+class UpdateExceptionInput(CreateExceptionInput):
+    pass
