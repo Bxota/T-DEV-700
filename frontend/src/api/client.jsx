@@ -7,7 +7,7 @@ import {
   msUntil,
   refreshAccess,
   logout,
-} from "../auth";
+} from "../api/auth";
 
 const api = axios.create({ baseURL: (BASE || "/api").replace(/\/$/, "") });
 

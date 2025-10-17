@@ -1,5 +1,25 @@
 // src/context/UserContext.jsx
-import {createContext,useContext,useState,useEffect,useMemo,useCallback,} from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
+
+import api from "../api/client"; // ✅ instance axios avec intercepteurs
+import {
+  getAccess,
+  getRefresh,
+  getAccessExpiry,
+  getRefreshExpiry,
+  isPast,
+  msUntil,
+  refreshAccess,
+  initAuthBackgroundTasks,
+  logout as hardLogout, // vide tokens + redirect
+} from "../api/auth"; // ✅ note le .js
 
 const UserContext = createContext(null);
 export const useUser = () => {
@@ -18,18 +38,6 @@ const decodeJwt = (token) => {
     return null;
   }
 };
-
-const isJwtValid = (token) => {
-  try {
-    const { exp } = JSON.parse(atob(token.split(".")[1]));
-    return exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-};
-
-// ---------- constants ----------
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 // ---------- normalization helpers ----------
 const normalizeRole = (roleLike) => {
@@ -69,61 +77,76 @@ const minimalUserFromClaims = (claims, prev = null) => ({
 // ---------- provider ----------
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(true); // ⬅️ important pour éviter les redirections précoces
 
-  // 👉 public: MAJ après login
+  // Restaure/actualise la session et charge l’utilisateur
   const refreshUser = useCallback(async () => {
-    const access = localStorage.getItem("access");
-    if (!access || !isJwtValid(access)) {
+    // 1) a-t-on une session potentielle ? (refresh valide = source de vérité)
+    const hasRefresh = !!getRefresh() && !isPast(getRefreshExpiry());
+    if (!hasRefresh) {
       setUser(null);
       return;
     }
 
-    try {
-      const r = await fetch(`${API_BASE}/token/whoami/`, {
-        headers: { Authorization: `Bearer ${access}`, Accept: "application/json" },
-      });
+    // 2) access présent et valable pour >= 60s ? sinon → refresh
+    const accessOk =
+      !!getAccess() &&
+      !isPast(getAccessExpiry()) &&
+      msUntil(getAccessExpiry()) >= 60_000;
 
-      if (r.ok) {
-        const data = await r.json();
-        const u = data?.user || {};
-        setUser((prev) => normalizeUserFromApi(u, prev));
-        return;
-      }
-    } catch {
-      // ignore
+    if (!accessOk) {
+      await refreshAccess(); // peut throw si refresh expiré
     }
 
-    // fallback : hydrate depuis JWT minimalement
-    const claims = decodeJwt(access) || {};
-    setUser((prev) => minimalUserFromClaims(claims, prev));
+    // 3) Charger le profil via whoami, sinon fallback aux claims
+    try {
+      const { data } = await api.get("/token/whoami/");
+      const u = data?.user ?? data;
+      setUser((prev) => normalizeUserFromApi(u, prev));
+    } catch {
+      const claims = decodeJwt(getAccess()) || {};
+      setUser((prev) => minimalUserFromClaims(claims, prev));
+    }
   }, []);
 
-  //Synchronisation user <-> localStorage
+  // Boot : tenter la restauration avant d’afficher l’app
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
+    (async () => {
+      try {
+        await refreshUser();
+        initAuthBackgroundTasks(); // timers + listeners de refresh proactif
+      } catch {
+        // refresh échoué → session invalide
+        hardLogout("/login");
+        return;
+      } finally {
+        setBooting(false);
+      }
+    })();
+  }, [refreshUser]);
+
+  // Synchronisation user <-> localStorage (facultatif)
+  useEffect(() => {
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+    else localStorage.removeItem("user");
   }, [user]);
 
-  // 🔓 Déconnexion complète
+  // Déconnexion manuelle
   const logout = () => {
     localStorage.removeItem("user");
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    setUser(null);
+    hardLogout("/login");
   };
 
   const value = useMemo(
     () => ({
-      user,                 
-      setUser,              
+      user,
+      setUser,
+      booting,            // ⬅️ exposé pour ProtectedRoute/écran
+      isLoggedIn: !!user, // utile pour UI
       logout,
-      isLoggedIn: !!user,
-      refreshUser,         
+      refreshUser,
     }),
-    [user, refreshUser]
+    [user, booting, refreshUser]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
