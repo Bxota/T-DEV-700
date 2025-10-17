@@ -1,3 +1,4 @@
+// src/context/UserContext.jsx
 import {
   createContext,
   useContext,
@@ -7,6 +8,19 @@ import {
   useCallback,
 } from "react";
 
+import api from "../api/client"; // ✅ instance axios avec intercepteurs
+import {
+  getAccess,
+  getRefresh,
+  getAccessExpiry,
+  getRefreshExpiry,
+  isPast,
+  msUntil,
+  refreshAccess,
+  initAuthBackgroundTasks,
+  logout as hardLogout, // vide tokens + redirect
+} from "../api/auth"; // ✅ note le .js
+
 const UserContext = createContext(null);
 export const useUser = () => {
   const ctx = useContext(UserContext);
@@ -14,7 +28,7 @@ export const useUser = () => {
   return ctx;
 };
 
-// util pour décoder un JWT
+// ---------- helpers JWT ----------
 const decodeJwt = (token) => {
   try {
     const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -25,175 +39,114 @@ const decodeJwt = (token) => {
   }
 };
 
-const isJwtValid = (token) => {
-  try {
-    const { exp } = JSON.parse(atob(token.split(".")[1]));
-    return exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
+// ---------- normalization helpers ----------
+const normalizeRole = (roleLike) => {
+  if (!roleLike) return { id: null, name: "" };
+  if (typeof roleLike === "string") return { id: null, name: roleLike };
+  return { id: roleLike.id ?? null, name: roleLike.name ?? "" };
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const normalizeTeam = (teamLike) => {
+  if (!teamLike) return { id: null, name: "" };
+  if (typeof teamLike === "string") return { id: null, name: teamLike };
+  return { id: teamLike.id ?? null, name: teamLike.name ?? "" };
+};
 
+const normalizeUserFromApi = (u, prev = null) => ({
+  id: u?.id ?? prev?.id ?? null,
+  email: u?.email ?? prev?.email ?? null,
+  username: u?.username ?? prev?.username ?? null,
+  first_name: u?.first_name ?? prev?.first_name ?? "",
+  last_name: u?.last_name ?? prev?.last_name ?? "",
+  role: normalizeRole(u?.role),
+  team: normalizeTeam(u?.team),
+  avatarUrl: prev?.avatarUrl ?? "",
+});
+
+const minimalUserFromClaims = (claims, prev = null) => ({
+  id: claims?.user_id ?? claims?.sub ?? prev?.id ?? null,
+  email: claims?.email ?? prev?.email ?? null,
+  username: claims?.username ?? prev?.username ?? null,
+  first_name: prev?.first_name ?? "",
+  last_name: prev?.last_name ?? "",
+  role: normalizeRole(prev?.role),
+  team: normalizeTeam(prev?.team),
+  avatarUrl: prev?.avatarUrl ?? "",
+});
+
+// ---------- provider ----------
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const DEBUG_FORCE_LOGIN = false;
+  const [booting, setBooting] = useState(true); // ⬅️ important pour éviter les redirections précoces
 
-  // 👉 exposé publiquement pour forcer la MAJ après login
+  // Restaure/actualise la session et charge l’utilisateur
   const refreshUser = useCallback(async () => {
-    const access = localStorage.getItem("access");
-    if (!access || !isJwtValid(access)) {
+    // 1) a-t-on une session potentielle ? (refresh valide = source de vérité)
+    const hasRefresh = !!getRefresh() && !isPast(getRefreshExpiry());
+    if (!hasRefresh) {
       setUser(null);
       return;
     }
-    try {
-      const r = await fetch(`${API_BASE}/token/whoami/`, {
-        headers: { Authorization: `Bearer ${access}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        const u = data?.user || {};
-        setUser((prev) => ({
-          ...prev,
-          id: u.id ?? prev?.id ?? null,
-          email: u.email ?? prev?.email ?? null,
-          username: prev?.username ?? null,
-          first_name: u.first_name ?? "",
-          last_name: u.last_name ?? "",
-          role: u.role ?? prev?.role ?? null,
-          team: u.team ?? prev?.team ?? null,
-          avatarUrl: prev?.avatarUrl ?? "",
-        }));
-        return;
-      }
-    } catch {
-      // ignore
+
+    // 2) access présent et valable pour >= 60s ? sinon → refresh
+    const accessOk =
+      !!getAccess() &&
+      !isPast(getAccessExpiry()) &&
+      msUntil(getAccessExpiry()) >= 60_000;
+
+    if (!accessOk) {
+      await refreshAccess(); // peut throw si refresh expiré
     }
-    // fallback : au moins hydrater depuis le JWT
-    const claims = decodeJwt(access) || {};
-    setUser((prev) => ({
-      ...prev,
-      id: claims.user_id ?? claims.sub ?? prev?.id ?? null,
-      email: claims.email ?? prev?.email ?? null,
-      username: claims.username ?? prev?.username ?? null,
-    }));
+
+    // 3) Charger le profil via whoami, sinon fallback aux claims
+    try {
+      const { data } = await api.get("/token/whoami/");
+      const u = data?.user ?? data;
+      setUser((prev) => normalizeUserFromApi(u, prev));
+    } catch {
+      const claims = decodeJwt(getAccess()) || {};
+      setUser((prev) => minimalUserFromClaims(claims, prev));
+    }
   }, []);
 
+  // Boot : tenter la restauration avant d’afficher l’app
   useEffect(() => {
-    const boot = async () => {
-      if (DEBUG_FORCE_LOGIN) {
-        setUser({
-          id: "123",
-          email: "test@exemple.com",
-          username: "jean",
-          first_name: "Jean",
-          last_name: "Dupont",
-          role: "manager",
-          team: "Equipe A",
-          avatarUrl: "",
-        });
+    (async () => {
+      try {
+        await refreshUser();
+        initAuthBackgroundTasks(); // timers + listeners de refresh proactif
+      } catch {
+        // refresh échoué → session invalide
+        hardLogout("/login");
         return;
+      } finally {
+        setBooting(false);
       }
+    })();
+  }, [refreshUser]);
 
-      const storedUser = localStorage.getItem("user");
-      const access = localStorage.getItem("access");
-      const refresh = localStorage.getItem("refresh");
-
-      // 1) access token OK → tente whoami (ou hydrate depuis storage/JWT)
-      if (access && isJwtValid(access)) {
-        try {
-          const r = await fetch(`${API_BASE}/token/whoami/`, {
-            headers: { Authorization: `Bearer ${access}` },
-          });
-          if (r.ok) {
-            const data = await r.json();
-            const u = data?.user || {};
-            setUser({
-              ...(storedUser ? JSON.parse(storedUser) : {}),
-              id: u.id ?? null,
-              email: u.email ?? null,
-              username: u.username ?? null,
-              first_name: u.first_name ?? "",
-              last_name: u.last_name ?? "",
-              role: u.role ?? null,
-              team: u.team ?? null,
-              avatarUrl: "",
-            });
-            return;
-          }
-        } catch {
-          // ignore
-        }
-
-        const claims = decodeJwt(access) || {};
-        setUser(
-          (storedUser && JSON.parse(storedUser)) || {
-            id: claims.user_id ?? claims.sub ?? null,
-            email: claims.email ?? null,
-            username: claims.username ?? null,
-          }
-        );
-        return;
-      }
-
-      // 2) access expiré mais refresh présent → tente un refresh
-      if (refresh) {
-        try {
-          const res = await fetch(`${API_BASE}/token/refresh/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.access) {
-              localStorage.setItem("access", data.access);
-              const claims = decodeJwt(data.access) || {};
-              const u =
-                (storedUser && JSON.parse(storedUser)) || {
-                  id: claims.user_id ?? claims.sub ?? null,
-                  email: claims.email ?? null,
-                  username: claims.username ?? null,
-                };
-              setUser(u);
-              return;
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // 3) rien de valide → on nettoie
-      localStorage.removeItem("user");
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      setUser(null);
-    };
-
-    boot();
-  }, [DEBUG_FORCE_LOGIN]);
-
-  // Sync user <-> localStorage
+  // Synchronisation user <-> localStorage (facultatif)
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+    else localStorage.removeItem("user");
   }, [user]);
 
+  // Déconnexion manuelle
   const logout = () => {
     localStorage.removeItem("user");
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    setUser(null);
+    hardLogout("/login");
   };
 
   const value = useMemo(
-    () => ({ user, setUser, logout, isLoggedIn: !!user, refreshUser }),
-    [user, refreshUser]
+    () => ({
+      user,
+      setUser,
+      booting,            // ⬅️ exposé pour ProtectedRoute/écran
+      isLoggedIn: !!user, // utile pour UI
+      logout,
+      refreshUser,
+    }),
+    [user, booting, refreshUser]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

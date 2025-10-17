@@ -23,6 +23,50 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
     return () => clearInterval(timer);
   }, []);
 
+  // Fonction pour formater la date au format ISO 8601
+  const formatDateToISO = (date) => {
+    if (!date) return null;
+    
+    // Créer une nouvelle date avec l'heure à 00:00:00
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    
+    // Retourner au format ISO 8601 avec Z à la fin
+    return d.toISOString();
+  };
+
+  // Fonction pour formater la date de début de journée (00:00:00) en heure locale
+  const formatDateToISOStart = (date) => {
+    if (!date) return null;
+    
+    // Créer une nouvelle date en copiant la date originale
+    const d = new Date(date);
+    
+    // Construire manuellement la chaîne ISO avec l'heure locale
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    // Retourner au format ISO 8601 avec T00:00:00.000Z
+    return `${year}-${month}-${day}T00:00:00.000Z`;
+  };
+
+  // Fonction pour formater la date de fin de journée (23:59:59) en heure locale
+  const formatDateToISOEnd = (date) => {
+    if (!date) return null;
+    
+    // Créer une nouvelle date en copiant la date originale
+    const d = new Date(date);
+    
+    // Construire manuellement la chaîne ISO avec l'heure locale
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    // Retourner au format ISO 8601 avec T23:59:59.999Z
+    return `${year}-${month}-${day}T23:59:59.999Z`;
+  };
+
   // Récupération des users quand l'équipe change
   useEffect(() => {
     const fetchUsers = async () => {
@@ -45,7 +89,6 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
 
         if (response.ok) {
           const usersData = await response.json();
-          console.log('Users reçus pour l\'équipe:', selectedTeam, usersData);
           
           // Gérer différents formats de réponse
           const usersList = Array.isArray(usersData) ? usersData : 
@@ -69,21 +112,23 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
     };
 
     const fetchShifts = async () => {
-      if (!selectedTeam || users.length === 0) return;
+      if (!selectedTeam || !selectedDate) return;
       
       try {
-        for (const user of users) {
-          console.log('Fetching shifts for user:', user.id);
-          const response = await fetch(`/api/users/${user.id}/shifts`, {
-            method: 'GET',
-            headers: getAuthHeaders(),
-          });
+        // Convertir la date au format ISO 8601 pour toute la journée
+        const fromDate = formatDateToISOStart(selectedDate);  // 00:00:00
+        const toDate = formatDateToISOEnd(selectedDate);      // 23:59:59
+        
+        console.log('Fetching shifts for team:', selectedTeam, 'from:', fromDate, 'to:', toDate);
+        
+        const response = await fetch(`/api/teams/${selectedTeam}/calendar?from=${fromDate}&to=${toDate}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        });
 
-          if (response.ok) {
-            const shiftsData = await response.json();
-            console.log('Shifts reçus pour l\'utilisateur:', user.id, shiftsData);
-
-          }
+        if (response.ok) {
+          const shiftsData = await response.json();
+          console.log('Shifts reçus pour l\'équipe:', selectedTeam, 'journée complète:', shiftsData);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des shifts:', error);
@@ -94,7 +139,7 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
       fetchShifts();
     });
 
-  }, [selectedTeam]); // Changé de selectedTeam à selectedTeam
+  }, [selectedTeam, selectedDate]); // Ajouté selectedDate dans les dépendances
 
   // Calcule la position de la ligne d'heure actuelle
   const getCurrentTimePosition = () => {

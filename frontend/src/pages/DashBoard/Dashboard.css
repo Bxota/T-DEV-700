@@ -1,27 +1,55 @@
-/* Couleur par défaut lisible */
-.dashboard-root { color: #111; }
+/* Hérite des styles globaux .page-container / .page-header / .page-title / .page-description */
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 320px; /* colonne principale + stats */
+  gap: 24px;
+}
 
-/* Messages */
-.error-text { color: #d00; text-align: center; }
-.muted-text { color: #555; text-align: center; }
+/* Cartes alignées sur le style Profil */
+.dashboard-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 20px;
+}
+.dashboard-card.small { align-self: start; }
 
-/* Sections & titres */
-.section { margin-bottom: 40px; }
-.section-title {
-  font-size: 22px;
-  margin-bottom: 20px;
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 20px;
   color: #111;
   border-bottom: 2px solid #007bff;
   display: inline-block;
   padding-bottom: 5px;
+  margin: 0;
 }
-.bloc { margin-bottom: 30px; }
-.bloc-title { display: flex; justify-content: center; margin-bottom: 10px; }
-.bloc-title h3 { color: #111; font-size: 20px; }
+.card-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-/* Boutons génériques */
+.error-banner { color: #d00; margin-top: 10px; }
+.muted-text  { color: #555; text-align: center; }
+
+/* Liste des shifts */
+.bloc { margin-bottom: 24px; }
+.bloc-title { display: flex; justify-content: center; margin-bottom: 10px; }
+.bloc-title h3 { color: #111; font-size: 18px; margin: 0; }
+
+.shift-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+.shift-action { display: flex; align-items: center; gap: 12px; }
+
 .pointage-button {
-  width: 140px;
+  width: 160px;
   padding: 12px 0;
   cursor: pointer;
   border: none;
@@ -32,41 +60,46 @@
   transition: background-color 0.2s;
   text-align: center;
 }
-.pointage-button:hover { background-color: #0056b3; }
-.pointage-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pointage-button:hover    { background-color: #0056b3; }
+.pointage-button:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Affichage “Matin” : aligner horizontalement In / Out */
-.shift-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 64px;          /* espace entre In et Out */
-  flex-wrap: nowrap;
-}
-.shift-action {
-  display: flex;
-  align-items: center;
-  gap: 12px;          /* espace entre le bouton et le libellé */
-}
-
-/* Libellés à côté des boutons */
 .pointage-time {
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
   display: inline-block;
   width: 120px;
   text-align: left;
   font-family: monospace;
   margin-left: 6px;
-  color: #111;        /* sera surchargé inline en vert/rouge */
-  transition: color 0.2s ease;
+  color: #111;
+  transition: color .2s ease;
 }
 
-/* Effet “grisé & inclicable” quand le shift du jour est terminé */
-.shift-block.completed {
-  opacity: 0.55;
-  filter: grayscale(15%);
+.shift-block.completed { opacity: .55; filter: grayscale(15%); }
+.shift-block.completed .pointage-button { pointer-events: none; }
+
+.shifts-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
 }
-.shift-block.completed .pointage-button {
-  pointer-events: none; /* ignore les clics même si non disabled */
+.shifts-scroll .shift-block:last-child { margin-bottom: 0 !important; }
+
+/* Scrollbars */
+.shifts-scroll::-webkit-scrollbar { width: 10px; }
+.shifts-scroll::-webkit-scrollbar-track { background: #f3f3f4; border-radius: 8px; }
+.shifts-scroll::-webkit-scrollbar-thumb { background: #c9c9ce; border-radius: 8px; }
+.shifts-scroll::-webkit-scrollbar-thumb:hover { background: #b5b5bb; }
+.shifts-scroll { scrollbar-color: #c9c9ce #f3f3f4; scrollbar-width: thin; }
+
+/* Progress card */
+.progress-wrap { width: 180px; margin: 20px auto 0; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .dashboard-content { grid-template-columns: 1fr; }
+  .dashboard-card.small { order: -1; } /* stats au-dessus si tu préfères */
 }
