@@ -115,7 +115,7 @@ class ShiftTemplateRepository:
             if not tpl:
                 return {"error": "ShiftTemplate not found"}
             tpl.delete()
-            return None
+            return True
         except IntegrityError as e:
             return {"error": str(e)}
         except Exception as e:

@@ -164,15 +164,6 @@ class UserShiftCollection(APIView):
             return [IsAuthenticated()]
         return [IsAuthenticated()]
 
-    def get(self, request, user_id):
-        try:
-            ShiftManager.check_db_element_exist(Users, user_id)
-            shifts = ShiftManager.list_shifts_by_user_id(user_id)
-            serialized = ShiftSerializer(shifts, many=True).data
-            return Response({"shifts": serialized}, status=status.HTTP_200_OK)
-        except APIException as e:
-            return Response(e.detail, status=e.status_code)
-
     def post(self, request, user_id):
         try:
             user = ShiftManager.check_db_element_exist(Users, user_id)

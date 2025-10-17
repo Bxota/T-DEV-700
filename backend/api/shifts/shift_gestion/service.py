@@ -24,6 +24,21 @@ class ShiftTemplateManager(AbstractManager):
             role_id=role_id,
             is_active=is_active,
         )
+        
+    @staticmethod
+    def update_template(template_id: str, name: str, default_duration_minutes, timezone, role_id: str, is_active: bool = True):
+        return ShiftTemplateRepository.update_template(
+            template_id, 
+            name=name, 
+            default_duration_minutes=default_duration_minutes, 
+            timezone=timezone, 
+            role_id=role_id,
+            is_active=is_active,
+        )
+        
+    @staticmethod
+    def delete_template(template_id: str):
+        return ShiftTemplateRepository.delete_template(template_id=template_id)
 
 class ShiftRuleManager(AbstractManager):
     @staticmethod
@@ -61,3 +76,18 @@ class ShiftExceptionManager(AbstractManager):
             override_duration_minutes=override_duration_minutes,
             note=note,
         )
+    
+    @staticmethod
+    def update_exception(exception_id: str, date, override_start_local_time, override_duration_minutes, is_skipped: bool = False, note: str = ""):
+        return ShiftExceptionRepository.update_exception(
+            exception_id=exception_id,
+            date=date,
+            override_start_local_time=override_start_local_time,
+            override_duration_minutes=override_duration_minutes,
+            is_skipped=is_skipped,
+            note=note,
+        )
+        
+    @staticmethod
+    def delete_exception(exception_id: str):
+        return ShiftExceptionRepository.delete_exception(exception_id=exception_id)
