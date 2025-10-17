@@ -1,11 +1,9 @@
-/* Hérite des styles globaux .page-container / .page-header / .page-title / .page-description */
+/* Layout */
 .dashboard-content {
   display: grid;
-  grid-template-columns: 1fr 320px; /* colonne principale + stats */
+  grid-template-columns: 1fr 320px;
   gap: 24px;
 }
-
-/* Cartes alignées sur le style Profil */
 .dashboard-card {
   background: #fff;
   border-radius: 12px;
@@ -34,7 +32,7 @@
 .error-banner { color: #d00; margin-top: 10px; }
 .muted-text  { color: #555; text-align: center; }
 
-/* Liste des shifts */
+/* Shifts list */
 .bloc { margin-bottom: 24px; }
 .bloc-title { display: flex; justify-content: center; margin-bottom: 10px; }
 .bloc-title h3 { color: #111; font-size: 18px; margin: 0; }
@@ -95,11 +93,25 @@
 .shifts-scroll::-webkit-scrollbar-thumb:hover { background: #b5b5bb; }
 .shifts-scroll { scrollbar-color: #c9c9ce #f3f3f4; scrollbar-width: thin; }
 
-/* Progress card */
-.progress-wrap { width: 180px; margin: 20px auto 0; }
+/* Shift header: titre + badge */
+.shift-block .shift-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.shift-block .shift-title { margin: 0; }
+.shift-block .availability-hint {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  background: #e0f7fa;
+  border-radius: 8px;
+  font-weight: 500;
+}
 
 /* Responsive */
 @media (max-width: 1024px) {
   .dashboard-content { grid-template-columns: 1fr; }
-  .dashboard-card.small { order: -1; } /* stats au-dessus si tu préfères */
+  .dashboard-card.small { order: -1; }
 }
