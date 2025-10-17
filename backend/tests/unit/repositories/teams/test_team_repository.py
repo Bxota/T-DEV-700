@@ -1,9 +1,10 @@
-# tests/repositories/test_team_repository.py
+from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.exceptions import APIException
 
 from db_manager.models import Users, Teams, Roles
+from db_manager.repositories.team_repository import TeamRepository
 from db_manager.repositories.user_repository import UserRepository
 
 
@@ -178,3 +179,60 @@ class TeamRepositoryTests(TestCase):
     def test_get_roles_ok(self):
         qs = UserRepository.get_roles()
         self.assertEqual(list(qs.values_list("id", flat=True)), [self.role_employee.id, self.role_manager.id])
+
+
+class TeamRepositoryBehaviourTests(TestCase):
+    def setUp(self):
+        Roles.objects.get_or_create(name="Employee")
+        self.team = Teams.objects.create(name="Initial")
+
+    def test_get_teams_returns_id_name_list(self):
+        Teams.objects.create(name="Another")
+        result = TeamRepository.get_teams()
+        expected = list(Teams.objects.order_by("id").values("id", "name"))
+        self.assertEqual(result, expected)
+
+    def test_get_teams_raises_api_exception_on_error(self):
+        with patch("db_manager.repositories.team_repository.Teams.objects.order_by", side_effect=Exception("boom")):
+            with self.assertRaises(APIException):
+                TeamRepository.get_teams()
+
+    def test_create_team_success(self):
+        new_team = TeamRepository.create_team("Created")
+        self.assertIsInstance(new_team, Teams)
+        self.assertTrue(Teams.objects.filter(name="Created").exists())
+
+    def test_create_team_raises_api_exception_on_error(self):
+        with patch("db_manager.repositories.team_repository.Teams.objects.create", side_effect=Exception("db down")):
+            with self.assertRaises(APIException):
+                TeamRepository.create_team("Impossible")
+
+    def test_get_team_by_id_success(self):
+        fetched = TeamRepository.get_team_by_id(self.team.id)
+        self.assertEqual(fetched.id, self.team.id)
+
+    def test_get_team_by_id_raises_api_exception_on_error(self):
+        with patch("db_manager.repositories.team_repository.Teams.objects.get", side_effect=Exception("missing")):
+            with self.assertRaises(APIException):
+                TeamRepository.get_team_by_id(999)
+
+    def test_update_team_success(self):
+        updated = TeamRepository.update_team(self.team.id, "Renamed")
+        self.team.refresh_from_db()
+        self.assertEqual(updated.name, "Renamed")
+        self.assertEqual(self.team.name, "Renamed")
+
+    def test_update_team_raises_api_exception_on_error(self):
+        with patch("db_manager.repositories.team_repository.Teams.objects.get", side_effect=Exception("bad")):
+            with self.assertRaises(APIException):
+                TeamRepository.update_team(123, "Nope")
+
+    def test_delete_team_success(self):
+        result = TeamRepository.delete_team(self.team.id)
+        self.assertTrue(result)
+        self.assertFalse(Teams.objects.filter(id=self.team.id).exists())
+
+    def test_delete_team_raises_api_exception_on_error(self):
+        with patch("db_manager.repositories.team_repository.Teams.objects.get", side_effect=Exception("bad delete")):
+            with self.assertRaises(APIException):
+                TeamRepository.delete_team(321)
