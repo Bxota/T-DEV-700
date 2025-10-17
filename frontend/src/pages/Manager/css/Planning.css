@@ -1,3 +1,73 @@
+/* Styles pour le DatePicker au-dessus de tout */
+.react-datepicker-wrapper {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+.react-datepicker-popper {
+  z-index: 10000 !important;
+}
+
+.react-datepicker {
+  z-index: 10001 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid #5289c3 !important;
+  border-radius: 8px !important;
+}
+
+/* S'assurer que le date picker reste au-dessus même des modales */
+.react-datepicker__portal {
+  z-index: 10002 !important;
+}
+
+/* Styles pour l'overlay du datepicker */
+.react-datepicker__triangle {
+  z-index: 10001 !important;
+}
+
+/* Forcer le z-index sur tous les éléments du datepicker */
+.react-datepicker * {
+  z-index: inherit !important;
+}
+
+/* S'assurer que les autres éléments restent en dessous */
+.scheduler-container {
+  z-index: 1;
+  position: relative;
+}
+
+.users-list {
+  z-index: 2;
+  position: relative;
+}
+
+.user-card {
+  z-index: 2;
+  position: relative;
+}
+
+.current-time-line {
+  z-index: 3;
+  position: absolute;
+}
+
+/* Si vous avez des éléments qui pourraient interférer */
+.scheduler-body {
+  z-index: 1;
+  position: relative;
+}
+
+.users-grid {
+  z-index: 2;
+  position: relative;
+}
+
+/* Pour le conteneur principal du Manager si nécessaire */
+.manager-main-container {
+  position: relative;
+  z-index: 0;
+}
+
 .users-list {
  position: absolute;
  z-index: 10;
