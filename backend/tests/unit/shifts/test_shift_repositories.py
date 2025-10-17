@@ -90,6 +90,167 @@ def test_shift_rule_repository_assign_and_clear(base_data):
 
 
 @pytest.mark.django_db
+def test_shift_rule_repository_create_rule_errors(base_data):
+    team, role, creator = base_data
+
+    # template missing
+    missing = ShiftRuleRepository.create_rule(
+        template_id=999,
+        weekday=0,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+    assert missing == {"error": "ShiftTemplate not found"}
+
+    tpl = ShiftTemplateRepository.create_template(
+        name="Weekday",
+        team_id=team.id,
+        created_by_id=creator.id,
+        default_duration_minutes=300,
+    )
+
+    # invalid weekday
+    invalid = ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=7,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+    assert invalid == {"error": "weekday must be in [0..6]"}
+
+    # assigned user missing
+    missing_user = ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=1,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+        assigned_user_ids=[999],
+    )
+    assert missing_user == {"error": "One or more users not found"}
+
+
+@pytest.mark.django_db
+def test_shift_rule_repository_get_by_id_not_found(base_data):
+    result = ShiftRuleRepository.get_by_id(123456)
+    assert result == {"error": "ShiftRule not found"}
+
+
+@pytest.mark.django_db
+def test_shift_rule_repository_list_by_template_orders(base_data):
+    team, role, creator = base_data
+    tpl = ShiftTemplateRepository.create_template(
+        name="List",
+        team_id=team.id,
+        created_by_id=creator.id,
+        default_duration_minutes=480,
+    )
+    ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=2,
+        start_local_time=time(9, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+    ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=1,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+    ordered = ShiftRuleRepository.list_by_template(tpl.id)
+    assert list(ordered.values_list("weekday", flat=True)) == [1, 2]
+
+
+@pytest.mark.django_db
+def test_shift_rule_repository_update_rule_errors(base_data):
+    team, role, creator = base_data
+    tpl = ShiftTemplateRepository.create_template(
+        name="Upd",
+        team_id=team.id,
+        created_by_id=creator.id,
+        default_duration_minutes=480,
+    )
+    rule = ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=1,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+
+    not_found = ShiftRuleRepository.update_rule(999, weekday=2)
+    assert not_found == {"error": "ShiftRule not found"}
+
+    invalid = ShiftRuleRepository.update_rule(rule.id, weekday=7)
+    assert invalid == {"error": "weekday must be in [0..6]"}
+
+    updated = ShiftRuleRepository.update_rule(rule.id, weekday=2, duration_minutes=90)
+    assert updated.weekday == 2
+    assert updated.duration_minutes == 90
+
+
+@pytest.mark.django_db
+def test_shift_rule_repository_assign_users_errors(base_data):
+    team, role, creator = base_data
+    tpl = ShiftTemplateRepository.create_template(
+        name="Assign",
+        team_id=team.id,
+        created_by_id=creator.id,
+        default_duration_minutes=480,
+    )
+    rule = ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=1,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+    other_user = Users.objects.create_user(
+        email="other@example.com",
+        password="pwd",
+        first_name="O",
+        last_name="User",
+        team=team,
+        role=role,
+    )
+
+    assert ShiftRuleRepository.assign_users(999, [other_user.id]) == {"error": "ShiftRule not found"}
+    assert ShiftRuleRepository.assign_users(rule.id, [999]) == {"error": "One or more users not found"}
+
+    assigned = ShiftRuleRepository.assign_users(rule.id, [other_user.id])
+    assert assigned.assigned_users.filter(id=other_user.id).exists()
+    assert assigned.apply_to_whole_team is False
+
+
+@pytest.mark.django_db
+def test_shift_rule_repository_clear_and_delete_errors(base_data):
+    team, role, creator = base_data
+    tpl = ShiftTemplateRepository.create_template(
+        name="Clear",
+        team_id=team.id,
+        created_by_id=creator.id,
+        default_duration_minutes=480,
+    )
+    rule = ShiftRuleRepository.create_rule(
+        template_id=tpl.id,
+        weekday=1,
+        start_local_time=time(8, 0),
+        duration_minutes=60,
+        effective_from=date.today(),
+    )
+
+    assert ShiftRuleRepository.clear_assigned_users(999) == {"error": "ShiftRule not found"}
+    cleared = ShiftRuleRepository.clear_assigned_users(rule.id)
+    assert cleared.id == rule.id
+
+    assert ShiftRuleRepository.delete_rule(999) == {"error": "ShiftRule not found"}
+    assert ShiftRuleRepository.delete_rule(rule.id) is None
+    assert ShiftRuleRepository.get_by_id(rule.id) == {"error": "ShiftRule not found"}
+@pytest.mark.django_db
 def test_shift_exception_repository_create_update_delete(base_data):
     team, role, creator = base_data
     tpl = ShiftTemplateRepository.create_template(
