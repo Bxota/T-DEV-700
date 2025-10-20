@@ -882,7 +882,7 @@ def generate_team_shifts(request, team_id: int):
     ],
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, IsTeamManager])
+@permission_classes([IsAuthenticated])
 def list_user_shifts_window(request, user_id: int):
     try:
         # Autz: le user lui-même OU le manager de son équipe
