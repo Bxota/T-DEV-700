@@ -75,13 +75,13 @@ const Horaires = () => {
 
   // Jours de la semaine
   const weekdays = [
-    { id: 1, name: 'Lundi' },
-    { id: 2, name: 'Mardi' },
-    { id: 3, name: 'Mercredi' },
-    { id: 4, name: 'Jeudi' },
-    { id: 5, name: 'Vendredi' },
-    { id: 6, name: 'Samedi' },
-    { id: 0, name: 'Dimanche' }
+    { id: 0, name: 'Lundi' },
+    { id: 1, name: 'Mardi' },
+    { id: 2, name: 'Mercredi' },
+    { id: 3, name: 'Jeudi' },
+    { id: 4, name: 'Vendredi' },
+    { id: 5, name: 'Samedi' },
+    { id: 6, name: 'Dimanche' }
   ];
 
   const getWeekdayName = (weekdayId) => {
@@ -415,7 +415,7 @@ const Horaires = () => {
   const openAddRule = () => {
     setAddingRule(true);
     setNewRuleData({
-      weekday: 1,
+      weekday: 0,
       start_local_time: '',
       duration_minutes: 480,
       effective_from: new Date().toISOString().split('T')[0],
