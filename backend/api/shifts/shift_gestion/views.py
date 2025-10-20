@@ -72,7 +72,7 @@ def create_shift_template(request, team_id: int):
         res = ShiftTemplateManager.create_template(
             name=payload["name"],
             team_id=team_id,
-            created_by_id=request.user.id,
+            user_id=request.user.id,
             default_duration_minutes=payload["default_duration_minutes"],
             timezone=payload.get("timezone", "Europe/Paris"),
             role_id=payload.get("role_id"),

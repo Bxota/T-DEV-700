@@ -91,7 +91,7 @@ const Dashboard = () => {
   async function rowCheckIn(s) {
     setError(''); setLoading(true);
     try {
-      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-in`), {
+      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-in/`), {
         method:'POST', headers: headers(), body: JSON.stringify({ start_time: new Date().toISOString() })
       });
       const data = await res.json().catch(()=> ({}));
@@ -105,7 +105,7 @@ const Dashboard = () => {
   async function rowCheckOut(s) {
     setError(''); setLoading(true);
     try {
-      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-out`), {
+      const res  = await fetch(u(`/users/${userId}/shifts/${s.id}/check-out/`), {
         method:'POST', headers: headers(), body: JSON.stringify({ end_time: new Date().toISOString() })
       });
       const data = await res.json().catch(()=> ({}));
