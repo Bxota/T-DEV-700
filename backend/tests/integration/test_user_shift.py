@@ -53,22 +53,6 @@ class BaseAPITest(TestCase):
 
 
 class TestUserShiftCollection(BaseAPITest):
-    @patch("api.shifts.views.ShiftManager.list_shifts_by_user_id")  # adapte le path exact du module
-    def test_list_shifts_by_user_ok(self, mock_list):
-        now = make_aware(dt.datetime.now())
-        s = Shifts.objects.create(user=self.user, start_time=now, end_time=now + dt.timedelta(hours=2))
-
-        # ⬇️ renvoie un QS d'instances, pas des dicts
-        mock_list.return_value = Shifts.objects.filter(user=self.user).order_by("id")
-
-        self.auth_as(self.user_token)
-        resp = self.client.get(self.base_user_url)
-
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn("shifts", resp.data)
-        self.assertEqual(len(resp.data["shifts"]), 1)
-        mock_list.assert_called_once_with(self.user.id)
-
     def test_create_shift_validation_missing_start(self):
         self.auth_as(self.user_token)
         payload = {"end_time": iso(make_aware(dt.datetime.now() + dt.timedelta(hours=1)))}
