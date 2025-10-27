@@ -1,7 +1,6 @@
 html, body, #root {
   min-height: 100%;
   height: auto;
-  overflow-y: auto;
 }
 
 * {
@@ -17,7 +16,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8f9fa;
-  overflow-x: hidden;
 }
 
 .app {
@@ -33,7 +31,6 @@ body {
   margin-left: 15%;
   transition: margin-left 0.3s ease, width 0.3s ease;
   position: relative;
-  overflow: visible;
   padding-bottom: 64px;
 }
 
