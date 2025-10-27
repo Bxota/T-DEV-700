@@ -203,8 +203,6 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
             <div key={hour} className="time-slot">
             </div>
           ))}
-        </div>
-      </div>
 
       <div className="users-list">
         {loadingUsers ? (
@@ -230,6 +228,8 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
         ) : (
           <p className="no-users">Aucun membre trouvé pour cette équipe</p>
         )}
+      </div>
+        </div>
       </div>
 
       <PersonalInfo selectedUserId={selectedUserId} />

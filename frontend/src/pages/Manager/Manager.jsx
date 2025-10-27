@@ -9,72 +9,28 @@ import { getAuthHeaders } from "../../api/auth";
 export default function Manager() {
   const [showStats, setShowStats] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTeam, setSelectedTeam] = useState("");
-  const [teams, setTeams] = useState([]); // Initialisé en tant que tableau vide
-  const [loadingTeams, setLoadingTeams] = useState(false);
-  const [teamsError, setTeamsError] = useState(null);
+  const [team, setTeam] = useState(null);
 
   const toggleStats = () => {
     setShowStats(!showStats);
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchTeams = async () => {
-      setLoadingTeams(true);
-      setTeamsError(null);
-      try {
-        const res = await fetch("/api/teams", { 
-          signal: controller.signal, 
-          headers: getAuthHeaders()
-        });
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-        const data = await res.json();
-        
-        // Vérifiez que data est bien un tableau
-        if (Array.isArray(data.teams)) {
-          setTeams(data.teams);
-          setSelectedTeam(data.teams.length > 0 ? data.teams[0].id : ""); // Sélectionne la première équipe si disponible
-        } else {
-          console.error("La réponse de l'API n'est pas un tableau:", data);
-          setTeams([]); // Force un tableau vide si la réponse n'est pas un tableau
-          setTeamsError("Format de données incorrect");
-        }
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setTeamsError(err.message || "Erreur lors de la récupération des équipes");
-          setTeams([]); // Vide le tableau des équipes en cas d'erreur
-          setSelectedTeam(""); // Remet la sélection à vide
-        }
-      } finally {
-        setLoadingTeams(false);
-      }
-    };
-
-    fetchTeams();
-    return () => controller.abort();
+    const user = localStorage.getItem('user');
+    if (user) {
+      const parsedUser = JSON.parse(user);
+      setTeam(parsedUser.team);
+    }
   }, []);
-
-  const handleTeamChange = (e) => {
-    setSelectedTeam(e.target.value);
-  };
 
   return (
     <div className="manager-container">
       <div className="manager-card">
-        <select 
-          className="team-selector"
-          value={selectedTeam}
-          onChange={handleTeamChange}
-          disabled={loadingTeams || teamsError}
-        >
-          {!teamsError && Array.isArray(teams) && teams.map(team => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </select>
+        {team && (
+          <div className="team-info">
+            <h2>Équipe : {team.name}</h2>
+          </div>
+        )}
         
         <button
           className="add-member-btn"
@@ -92,9 +48,9 @@ export default function Manager() {
         </div>
         
         <Planning 
-          selectedTeam={selectedTeam} 
+          selectedTeam={team?.id} 
           selectedDate={selectedDate}
-          teams={teams}
+          teams={team ? [team] : []}
         />
       
       
@@ -109,7 +65,7 @@ export default function Manager() {
 
       {/* Panneau des statistiques */}
       <div className={`stats-panel ${showStats ? 'visible' : 'hidden'}`}>
-        <TeamStats selectedTeam={selectedTeam}/>
+        <TeamStats selectedTeam={team?.id}/>
       </div>
     </div>
   );
