@@ -7,7 +7,7 @@ export const ROLE = {
 export const ACL = {
   dashboard: [ROLE.MANAGER, ROLE.EMPLOYEE],
   profile:   [ROLE.MANAGER, ROLE.EMPLOYEE],
-  teams:     [ROLE.MANAGER, ROLE.EMPLOYEE], // 👈 employee peut voir
+  teams:     [ROLE.MANAGER, ROLE.EMPLOYEE], 
   users:     [ROLE.MANAGER],
   manager:   [ROLE.MANAGER],
 };
