@@ -28,7 +28,7 @@ class UserManager(BaseUserManager):
         # Assigner le rôle 'manager' automatiquement
         try:
             from db_manager.models import Roles
-            manager_role, _ = Roles.objects.get_or_create(name="manager")
+            manager_role, _ = Roles.objects.get(name="Manager")
             if hasattr(user, "role"):
                 user.role = manager_role
                 user.save(update_fields=["role"])
