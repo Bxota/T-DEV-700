@@ -1,12 +1,8 @@
-// src/Profile.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { BASE, getAccess, logout } from '../../api/auth';
 import './Profile.css';
 import { useUser } from '../../context/UserContext';
 
-// 1) Prénom+Nom -> 2 lettres
-// 2) Sinon email (avant @) -> 2 lettres
-// 3) Sinon "??"
 const computeInitials = ({ firstName, lastName, email }) => {
   const a = (firstName || '').trim();
   const b = (lastName  || '').trim();
@@ -24,9 +20,9 @@ const computeInitials = ({ firstName, lastName, email }) => {
 };
 
 const Profile = () => {
-  const { setUser: setCtxUser } = useUser(); // ← pour synchroniser le menu/avatar
+ 
+  const { user: ctxUser, refreshUser, booting } = useUser();
 
-  // State avec forme STABLE (role/team = objets {id,name})
   const [user, setLocalUser] = useState({
     firstName: '',
     lastName: '',
@@ -52,69 +48,28 @@ const Profile = () => {
     [user.firstName, user.lastName, user.email]
   );
 
-  // Charger les infos utilisateur via /whoami + MAJ du UserContext pour le menu
   useEffect(() => {
-    let cancelled = false;
+    if (booting) { setLoading(true); return; }
 
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = getAccess();
-        if (!token) { logout(); return; }
+    if (!ctxUser) {
+      setLoading(false);
+      return;
+    }
 
-        const res = await fetch(`${BASE}/token/whoami/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
+    const newUser = {
+      firstName: ctxUser.first_name ?? '',
+      lastName : ctxUser.last_name  ?? '',
+      email    : ctxUser.email      ?? '',
+      role     : { id: ctxUser.role?.id ?? null, name: ctxUser.role?.name ?? '' },
+      team     : { id: ctxUser.team?.id ?? null, name: ctxUser.team?.name ?? '' },
+      phone    : ctxUser.phone_number ?? '' 
+    };
 
-        if (res.status === 401) { logout(); return; }
-        if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
+    setLocalUser(newUser);
+    setLoading(false);
+  }, [ctxUser, booting]);
 
-        const data = await res.json();
-        const u = data?.user ?? {};
 
-        // Normalisation API → state local
-        const newUser = {
-          firstName: u.first_name ?? '',
-          lastName : u.last_name  ?? '',
-          email    : u.email      ?? '',
-          role     : { id: u.role?.id ?? null, name: u.role?.name ?? '' },
-          team     : { id: u.team?.id ?? null, name: u.team?.name ?? '' },
-          phone    : u.phone_number ?? ''
-        };
-
-        if (!cancelled) {
-          // État local (page Profil)
-          setLocalUser(newUser);
-
-          // Contexte global (menu/avatar connecté)
-          // On stocke des strings si le contexte n’a besoin que des libellés
-          setCtxUser(prev => ({
-            ...prev,
-            id: u.id ?? prev?.id ?? null,
-            email: newUser.email,
-            username: prev?.username ?? null,
-            first_name: newUser.firstName,
-            last_name : newUser.lastName,
-            role: newUser.role?.name ?? '',
-            team: newUser.team?.name ?? '',
-            avatarUrl: prev?.avatarUrl ?? ''
-          }));
-        }
-      } catch (e) {
-        if (!cancelled) setError(e.message || 'Erreur de chargement');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [setCtxUser]);
-
-  // Handler qui respecte la structure imbriquée
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setLocalUser(prev => {
@@ -128,19 +83,40 @@ const Profile = () => {
     });
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    console.log('Profil sauvegardé:', user);
-    // TODO: PUT/PATCH vers ton endpoint d’update si besoin
-    // Exemple:
-    // await fetch(`${BASE}/users/${id}`, {
-    //   method: 'PATCH',
-    //   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccess()}` },
-    //   body: JSON.stringify({ ... }),
-    // });
+  const handleSave = async () => {
+    try {
+      setError(null);
+      setIsEditing(false);
+
+      const token = getAccess();
+      if (!token) { logout(); return; }
+
+      const payload = {
+        first_name: user.firstName,
+        last_name : user.lastName,
+        email     : user.email,
+        phone_number: user.phone,
+        role: user.role?.id ? { id: user.role.id } : undefined, 
+        team: user.team?.id ? { id: user.team.id } : undefined,
+      };
+
+      await fetch(`${BASE}/users/me/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      await refreshUser();
+    } catch (e) {
+      setError(e.message || 'Erreur de sauvegarde');
+    }
   };
 
-  if (loading) {
+  if (booting || loading) {
     return (
       <div className="page-container">
         <div className="page-header">
