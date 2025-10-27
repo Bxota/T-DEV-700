@@ -83,7 +83,6 @@ export async function refreshAccess() {
     .then((res) => {
       const { access, access_token_expires_at } = res.data || {};
       if (!access) throw new Error("Refresh: access manquant");
-      // on conserve le refresh + sa date (souvent pas renvoyés au refresh)
       setTokens({
         access,
         access_expires_at: access_token_expires_at,
