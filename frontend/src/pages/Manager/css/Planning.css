@@ -71,7 +71,6 @@
 .users-list {
  position: absolute;
  z-index: 10;
- top: 14vh;
 }
 
 .users-grid {
