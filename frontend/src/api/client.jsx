@@ -11,58 +11,58 @@ import {
 
 const api = axios.create({ baseURL: (BASE || "/api").replace(/\/$/, "") });
 
-// Pré-refresh si < 60s avant expiration
+// Promesse de refresh partagée (évite les refresh parallèles)
+let refreshPromise = null;
+
+function ensureRefresh() {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccess()
+      .catch((err) => {
+        // échec du refresh → logout global
+        logout();
+        throw err;
+      })
+      .finally(() => {
+        // réinitialiser pour les prochains cycles
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+// ---- Interceptor requête : Authorization + pré-refresh si < 60s ----
 api.interceptors.request.use(async (config) => {
+  // Si l'access expire bientôt, on rafraîchit *une seule fois*
+  const exp = getAccessExpiry();
+  if (exp && msUntil(exp) < 60_000) {
+    await ensureRefresh();
+  }
+
+  // Toujours poser le token le plus récent
   const access = getAccess();
-  if (!config.headers) config.headers = {};
+  config.headers = config.headers || {};
   if (access) config.headers.Authorization = `Bearer ${access}`;
   return config;
 });
 
-// Retry 401 avec refresh unique + mise en file
-let isRefreshing = false;
-let requestQueue = [];
-function queueRequest(cb) {
-  return new Promise((resolve, reject) => requestQueue.push({ resolve, reject, cb }));
-}
-function flushQueue(error, token) {
-  requestQueue.forEach(p => (error ? p.reject(error) : p.resolve(p.cb(token))));
-  requestQueue = [];
-}
-
+// ---- Interceptor réponse : retry unique sur 401 avec refresh partagé ----
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (!error.response || error.response.status !== 401 || original._retry) {
+    if (!error.response || error.response.status !== 401 || original?._retry) {
       return Promise.reject(error);
     }
+
     original._retry = true;
 
-    if (isRefreshing) {
-      try {
-        return await queueRequest((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return api(original);
-        });
-      } catch (err) { return Promise.reject(err); }
-    }
+    // Lancer (ou rejoindre) le refresh unique
+    const newAccess = await ensureRefresh();
 
-    isRefreshing = true;
-    try {
-      const newAccess = await refreshAccess(); // peut throw
-      if (!newAccess) throw new Error("No access after refresh");
-      original.headers.Authorization = `Bearer ${newAccess}`;
-      const resp = await api(original);
-      flushQueue(null, newAccess);
-      return resp;
-    } catch (err) {
-      flushQueue(err, null);
-      logout();
-      return Promise.reject(err);
-    } finally {
-      isRefreshing = false;
-    }
+    // Rejouer la requête d’origine avec le nouveau token
+    original.headers = original.headers || {};
+    if (newAccess) original.headers.Authorization = `Bearer ${newAccess}`;
+    return api(original);
   }
 );
 

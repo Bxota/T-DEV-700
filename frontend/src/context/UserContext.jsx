@@ -77,7 +77,7 @@ const minimalUserFromClaims = (claims, prev = null) => ({
 // ---------- provider ----------
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [booting, setBooting] = useState(true); // ⬅️ important pour éviter les redirections précoces
+  const [booting, setBooting] = useState(true); 
 
   // Restaure/actualise la session et charge l’utilisateur
   const refreshUser = useCallback(async () => {
@@ -98,7 +98,7 @@ export const UserProvider = ({ children }) => {
       await refreshAccess(); // peut throw si refresh expiré
     }
 
-    // 3) Charger le profil via whoami, sinon fallback aux claims
+    // 3) Charger le profil via whoami
     try {
       const { data } = await api.get("/token/whoami/");
       const u = data?.user ?? data;
@@ -109,14 +109,12 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // Boot : tenter la restauration avant d’afficher l’app
   useEffect(() => {
     (async () => {
       try {
         await refreshUser();
-        initAuthBackgroundTasks(); // timers + listeners de refresh proactif
+        initAuthBackgroundTasks(); 
       } catch {
-        // refresh échoué → session invalide
         hardLogout("/login");
         return;
       } finally {
@@ -141,8 +139,8 @@ export const UserProvider = ({ children }) => {
     () => ({
       user,
       setUser,
-      booting,            // ⬅️ exposé pour ProtectedRoute/écran
-      isLoggedIn: !!user, // utile pour UI
+      booting,            
+      isLoggedIn: !!user, 
       logout,
       refreshUser,
     }),
