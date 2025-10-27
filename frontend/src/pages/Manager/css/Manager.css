@@ -73,9 +73,20 @@ body {
     width: 100%;
     }
 
+.team-info {
+  text-align: center;
+}
+
+.team-info h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
 .manager-card {
   background: white;
-  padding-top: 24px;
+  padding-top: 12px;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 74%;
