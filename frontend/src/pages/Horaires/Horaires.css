@@ -9,8 +9,7 @@
 /* Suppression de l'ancien template-add-button - remplacé par template-generate-button */
 .template-generate-button {
   position: absolute;
-  top: 12vh;
-  left: 0;
+  top: 14vh;
   background-color: #17a2b8;
   color: white;
   border: none;
@@ -707,7 +706,6 @@
 
 /* Repositionner le bouton de génération */
 .horaires-tabs-container .template-generate-button {
-  position: static; /* Au lieu d'absolute */
   margin: 0; /* Supprimer les marges */
 }
 
