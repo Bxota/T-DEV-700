@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './Horaires.css';
 import { getAuthHeaders } from '../../api/auth';
+import { useUser } from '../../context/UserContext';
 
 const Horaires = () => {
+  const { user: currentUser } = useUser();
   const [horaires, setHoraires] = useState([]);
   const [rules, setRules] = useState([]); // Nouvel état pour les règles
   const [loading, setLoading] = useState(true);
@@ -34,15 +36,11 @@ const Horaires = () => {
   
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
   
   const [newHoraireData, setNewHoraireData] = useState({
     name: '',
-    default_duration_minutes: 480,
-    timezone: 'Europe/Paris',
+    default_duration_minutes: 480, // 8 h
+    timezone: 'UTC',
     role_id: null,
     is_active: true
   });
@@ -209,7 +207,7 @@ const Horaires = () => {
     setNewHoraireData({
       name: '',
       default_duration_minutes: 480,
-      timezone: 'Europe/Paris',
+      timezone: 'UTC',
       role_id: null,
       is_active: true
     });
@@ -222,7 +220,7 @@ const Horaires = () => {
     setNewHoraireData({
       name: '',
       default_duration_minutes: 480,
-      timezone: 'Europe/Paris',
+      timezone: 'UTC',
       role_id: null,
       is_active: true
     });
@@ -249,17 +247,13 @@ const Horaires = () => {
       showErrorModal('Erreur de validation', 'Veuillez saisir une durée valide');
       return;
     }
-    if (!newHoraireData.timezone) {
-      showErrorModal('Erreur de validation', 'Veuillez sélectionner un fuseau horaire');
-      return;
-    }
     
     try {
       // Préparer les données
       const payload = {
         name: newHoraireData.name.trim(),
         default_duration_minutes: parseInt(newHoraireData.default_duration_minutes),
-        timezone: newHoraireData.timezone,
+        timezone: "UTC",
         role_id: newHoraireData.role_id ? parseInt(newHoraireData.role_id) : null,
         is_active: newHoraireData.is_active
       };
@@ -337,7 +331,7 @@ const Horaires = () => {
       
       console.log('Modification template - Données envoyées:', payload);
       
-      const response = await fetch(`/api/teams/${currentUser.team.id}/shift-templates/${editingHoraire.id}`, {
+      const response = await fetch(`/api/shift-templates/${editingHoraire.id}/update`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
@@ -381,7 +375,7 @@ const Horaires = () => {
   
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`/api/teams/${currentUser.team.id}/shift-templates/${deletingHoraire.id}`, {
+      const response = await fetch(`/api/shift-templates/${deletingHoraire.id}/delete`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -503,7 +497,7 @@ const Horaires = () => {
   
   const confirmDeleteRule = async () => {
     try {
-      const response = await fetch(`/api/shift-templates/${deletingRule.template_id}/rules/${deletingRule.id}/`, {
+      const response = await fetch(`/api/shift-rules/${deletingRule.id}/delete`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -569,7 +563,7 @@ const Horaires = () => {
       
       console.log('Modification règle - Données envoyées:', payload);
       
-      const response = await fetch(`/api/shift-templates/${editingRule.template_id}/rules/${editingRule.id}/`, {
+      const response = await fetch(`/api/shift-rules/${editingRule.id}/update`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
@@ -748,45 +742,60 @@ const Horaires = () => {
 
   // Fonction pour récupérer les exceptions d'une règle - CORRIGÉE
   const fetchExceptions = async (ruleId) => {
-    if (!ruleId) {
-      setExceptions([]);
-      return;
-    }
-
     setLoadingExceptions(true);
     try {
-      // UTILISER LA BONNE ROUTE POUR LES EXCEPTIONS
-      const response = await fetch(`/api/shift-rules/${ruleId}`, {
-        headers: getAuthHeaders()
-      });
+      let exceptionsData;
       
-      if (response.ok) {
-        const exceptionsData = await response.json();
-        console.log('Données d\'exceptions reçues:', exceptionsData);
+      if (!ruleId) {
+        // Récupérer TOUTES les exceptions de la base de données
+        const response = await fetch(`/api/shift-exceptions/list`, {
+          headers: getAuthHeaders()
+        });
         
-        // Gérer différents formats de réponse possibles
-        const exceptionsList = Array.isArray(exceptionsData) ? exceptionsData : 
-                              Array.isArray(exceptionsData.results) ? exceptionsData.results : 
-                              Array.isArray(exceptionsData.exceptions) ? exceptionsData.exceptions : 
-                              [];
+        if (response.ok) {
+          exceptionsData = await response.json();
+        } else {
+          console.error('Erreur lors de la récupération des exceptions:', response.status);
+          setExceptions([]);
+          setLoadingExceptions(false);
+          return;
+        }
+      } else {
+        // Récupérer les exceptions d'une règle spécifique
+        const response = await fetch(`/api/shift-rules/${ruleId}`, {
+          headers: getAuthHeaders()
+        });
         
-        // Ajouter les informations de la règle à chaque exception
-        const ruleInfo = rules.find(r => r.id === parseInt(ruleId));
-        const exceptionsWithRule = exceptionsList.map(exception => ({
+        if (response.ok) {
+          exceptionsData = await response.json();
+        } else {
+          console.error('Erreur lors de la récupération des exceptions:', response.status);
+          setExceptions([]);
+          setLoadingExceptions(false);
+          return;
+        }
+      }
+      
+      console.log('Données d\'exceptions reçues:', exceptionsData);
+      
+      // Gérer différents formats de réponse possibles
+      const exceptionsList = Array.isArray(exceptionsData) ? exceptionsData : 
+                            Array.isArray(exceptionsData.results) ? exceptionsData.results : 
+                            Array.isArray(exceptionsData.exceptions) ? exceptionsData.exceptions : 
+                            [];
+      
+      // Ajouter les informations de la règle à chaque exception
+      const exceptionsWithRule = exceptionsList.map(exception => {
+        const ruleInfo = rules.find(r => r.id === exception.rule_id);
+        return {
           ...exception,
           rule_name: ruleInfo?.template_name || 'Règle inconnue',
-          rule_id: ruleInfo?.id
-        }));
-        
-        setExceptions(exceptionsWithRule);
-        console.log('Exceptions récupérées pour la règle', ruleId, ':', exceptionsWithRule);
-      } else {
-        console.error('Erreur lors de la récupération des exceptions:', response.status);
-        // Afficher le contenu de la réponse pour debug
-        const errorText = await response.text();
-        console.error('Contenu de l\'erreur:', errorText);
-        setExceptions([]);
-      }
+          rule_id: ruleInfo?.id || exception.rule_id
+        };
+      });
+      
+      setExceptions(exceptionsWithRule);
+      console.log('Exceptions récupérées:', exceptionsWithRule);
     } catch (error) {
       console.error('Erreur lors de la récupération des exceptions:', error);
       setExceptions([]);
@@ -999,7 +1008,7 @@ const Horaires = () => {
   
   const confirmDeleteException = async () => {
     try {
-      const response = await fetch(`/api/shift-rules/${deletingException.rule_id}/exceptions/${deletingException.id}/`, {
+      const response = await fetch(`/api/shift-exceptions/${deletingException.id}/delete`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -1392,19 +1401,6 @@ const Horaires = () => {
               placeholder="Ex: 480 pour 8h"
             />
 
-            <label>Fuseau horaire *</label>
-            <select
-              value={newHoraireData.timezone}
-              onChange={(e) => setNewHoraireData({...newHoraireData, timezone: e.target.value})}
-              className="timezone-select"
-            >
-              <option value="Europe/Paris">Europe/Paris</option>
-              <option value="UTC">UTC</option>
-              <option value="Europe/London">Europe/London</option>
-              <option value="America/New_York">America/New_York</option>
-              <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
-
             <label>Rôle spécifique (optionnel)</label>
             <input
               type="number"
@@ -1542,9 +1538,9 @@ const Horaires = () => {
               min="1"
             />
 
-            <label>Fuseau horaire *</label>
+            {/* <label>Fuseau horaire *</label>
             <select
-              value={editingHoraire.timezone || 'Europe/Paris'}
+              value={editingHoraire.timezone || 'UTC'}
               onChange={(e) => setEditingHoraire({ ...editingHoraire, timezone: e.target.value })}
               className="timezone-select"
             >
@@ -1553,7 +1549,7 @@ const Horaires = () => {
               <option value="Europe/London">Europe/London</option>
               <option value="America/New_York">America/New_York</option>
               <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
+            </select> */}
 
             <label>Rôle spécifique (optionnel)</label>
             <input
@@ -1701,6 +1697,314 @@ const Horaires = () => {
         </div>
       )}
 
+      {/* Modal de modification de la règle */}
+      {editingRule && (
+        <div className="horaires-modal-overlay" onClick={closeEditRule}>
+          <div className="horaires-modal horaires-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="horaires-modal-header">
+              <h2>Modifier la règle de planning</h2>
+              <button className="horaires-modal-close" onClick={closeEditRule}>×</button>
+            </div>
+
+            <label>Template *</label>
+            <select 
+              value={selectedTemplate} 
+              onChange={(e) => setSelectedTemplate(e.target.value)}
+              className="template-select"
+            >
+              <option value="">— Sélectionner un template —</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>{template.name}</option>
+              ))}
+            </select>
+
+            <label>Jour de la semaine *</label>
+            <select 
+              value={editingRule.weekday} 
+              onChange={(e) => setEditingRule({...editingRule, weekday: parseInt(e.target.value)})}
+              className="weekday-select"
+            >
+              {weekdays.map((day) => (
+                <option key={day.id} value={day.id}>{day.name}</option>
+              ))}
+            </select>
+
+            <label>Heure de début *</label>
+            <input
+              type="time"
+              value={editingRule.start_local_time || ''}
+              onChange={(e) => setEditingRule({...editingRule, start_local_time: e.target.value})}
+              step="60"
+              min="00:00"
+              max="23:59"
+            />
+
+            <label>Durée (minutes) *</label>
+            <input
+              type="number"
+              value={editingRule.duration_minutes || ''}
+              onChange={(e) => setEditingRule({...editingRule, duration_minutes: parseInt(e.target.value) || 0})}
+              min="1"
+            />
+
+            <label>Date d'effet (début) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_from || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_from: e.target.value})}
+            />
+
+            <label>Date d'effet (fin) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_to || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_to: e.target.value})}
+            />
+
+            <label>
+              <input
+                type="checkbox"
+                checked={editingRule.apply_to_whole_team || false}
+                onChange={(e) => setEditingRule({...editingRule, apply_to_whole_team: e.target.checked})}
+              />
+              Appliquer à toute l'équipe
+            </label>
+
+            {!editingRule.apply_to_whole_team && (
+              <div>
+                <label>Utilisateurs assignés</label>
+                <div className="user-selection-area">
+                  {users.map((user) => (
+                    <label key={user.id}>
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => handleUserSelection(user.id)}
+                      />
+                      {user.first_name} {user.last_name} ({user.email})
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="horaires-modal-buttons">
+              <button className="horaires-btn horaires-btn-save" onClick={handleSaveRule}>
+                Valider les modifications
+              </button>
+              <button className="horaires-btn horaires-btn-cancel" onClick={closeEditRule}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de modification de la règle */}
+      {editingRule && (
+        <div className="horaires-modal-overlay" onClick={closeEditRule}>
+          <div className="horaires-modal horaires-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="horaires-modal-header">
+              <h2>Modifier la règle de planning</h2>
+              <button className="horaires-modal-close" onClick={closeEditRule}>×</button>
+            </div>
+
+            <label>Template *</label>
+            <select 
+              value={selectedTemplate} 
+              onChange={(e) => setSelectedTemplate(e.target.value)}
+              className="template-select"
+            >
+              <option value="">— Sélectionner un template —</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>{template.name}</option>
+              ))}
+            </select>
+
+            <label>Jour de la semaine *</label>
+            <select 
+              value={editingRule.weekday} 
+              onChange={(e) => setEditingRule({...editingRule, weekday: parseInt(e.target.value)})}
+              className="weekday-select"
+            >
+              {weekdays.map((day) => (
+                <option key={day.id} value={day.id}>{day.name}</option>
+              ))}
+            </select>
+
+            <label>Heure de début *</label>
+            <input
+              type="time"
+              value={editingRule.start_local_time || ''}
+              onChange={(e) => setEditingRule({...editingRule, start_local_time: e.target.value})}
+              step="60"
+              min="00:00"
+              max="23:59"
+            />
+
+            <label>Durée (minutes) *</label>
+            <input
+              type="number"
+              value={editingRule.duration_minutes || ''}
+              onChange={(e) => setEditingRule({...editingRule, duration_minutes: parseInt(e.target.value) || 0})}
+              min="1"
+            />
+
+            <label>Date d'effet (début) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_from || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_from: e.target.value})}
+            />
+
+            <label>Date d'effet (fin) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_to || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_to: e.target.value})}
+            />
+
+            <label>
+              <input
+                type="checkbox"
+                checked={editingRule.apply_to_whole_team || false}
+                onChange={(e) => setEditingRule({...editingRule, apply_to_whole_team: e.target.checked})}
+              />
+              Appliquer à toute l'équipe
+            </label>
+
+            {!editingRule.apply_to_whole_team && (
+              <div>
+                <label>Utilisateurs assignés</label>
+                <div className="user-selection-area">
+                  {users.map((user) => (
+                    <label key={user.id}>
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => handleUserSelection(user.id)}
+                      />
+                      {user.first_name} {user.last_name} ({user.email})
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="horaires-modal-buttons">
+              <button className="horaires-btn horaires-btn-save" onClick={handleSaveRule}>
+                Valider les modifications
+              </button>
+              <button className="horaires-btn horaires-btn-cancel" onClick={closeEditRule}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification de la règle */}
+      {editingRule && (
+        <div className="horaires-modal-overlay" onClick={closeEditRule}>
+          <div className="horaires-modal horaires-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="horaires-modal-header">
+              <h2>Modifier la règle de planning</h2>
+              <button className="horaires-modal-close" onClick={closeEditRule}>×</button>
+            </div>
+
+            <label>Template *</label>
+            <select 
+              value={selectedTemplate} 
+              onChange={(e) => setSelectedTemplate(e.target.value)}
+              className="template-select"
+            >
+              <option value="">— Sélectionner un template —</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>{template.name}</option>
+              ))}
+            </select>
+
+            <label>Jour de la semaine *</label>
+            <select 
+              value={editingRule.weekday} 
+              onChange={(e) => setEditingRule({...editingRule, weekday: parseInt(e.target.value)})}
+              className="weekday-select"
+            >
+              {weekdays.map((day) => (
+                <option key={day.id} value={day.id}>{day.name}</option>
+              ))}
+            </select>
+
+            <label>Heure de début *</label>
+            <input
+              type="time"
+              value={editingRule.start_local_time || ''}
+              onChange={(e) => setEditingRule({...editingRule, start_local_time: e.target.value})}
+              step="60"
+              min="00:00"
+              max="23:59"
+            />
+
+            <label>Durée (minutes) *</label>
+            <input
+              type="number"
+              value={editingRule.duration_minutes || ''}
+              onChange={(e) => setEditingRule({...editingRule, duration_minutes: parseInt(e.target.value) || 0})}
+              min="1"
+            />
+
+            <label>Date d'effet (début) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_from || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_from: e.target.value})}
+            />
+
+            <label>Date d'effet (fin) *</label>
+            <input
+              type="date"
+              value={editingRule.effective_to || ''}
+              onChange={(e) => setEditingRule({...editingRule, effective_to: e.target.value})}
+            />
+
+            <label>
+              <input
+                type="checkbox"
+                checked={editingRule.apply_to_whole_team || false}
+                onChange={(e) => setEditingRule({...editingRule, apply_to_whole_team: e.target.checked})}
+              />
+              Appliquer à toute l'équipe
+            </label>
+
+            {!editingRule.apply_to_whole_team && (
+              <div>
+                <label>Utilisateurs assignés</label>
+                <div className="user-selection-area">
+                  {users.map((user) => (
+                    <label key={user.id}>
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => handleUserSelection(user.id)}
+                      />
+                      {user.first_name} {user.last_name} ({user.email})
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="horaires-modal-buttons">
+              <button className="horaires-btn horaires-btn-save" onClick={handleSaveRule}>
+                Valider les modifications
+              </button>
+              <button className="horaires-btn horaires-btn-cancel" onClick={closeEditRule}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de visualisation */}
       {viewingRule && (
         <div className="horaires-modal-overlay" onClick={closeViewRule}>
@@ -1719,7 +2023,6 @@ const Horaires = () => {
               <p><strong>Durée :</strong> {formatDuration(viewingRule.duration_minutes)}</p>
               <p><strong>Période :</strong> {viewingRule.effective_from} - {viewingRule.effective_to}</p>
               <p><strong>Assignation :</strong> {viewingRule.apply_to_whole_team ? 'Toute l\'équipe' : `${viewingRule.assigned_user_ids?.length || 0} utilisateur(s)`}</p>
-              <p><strong>Statut :</strong> {viewingRule.is_active ? 'Active' : 'Inactive'}</p>
             </div>
 
             <div className="horaires-modal-buttons" style={{ marginTop: 20 }}>
@@ -1809,7 +2112,7 @@ const Horaires = () => {
               min="1"
             />
 
-            <label>Fuseau horaire *</label>
+            {/* <label>Fuseau horaire *</label>
             <select
               value={editingHoraire.timezone || 'Europe/Paris'}
               onChange={(e) => setEditingHoraire({ ...editingHoraire, timezone: e.target.value })}
@@ -1820,7 +2123,7 @@ const Horaires = () => {
               <option value="Europe/London">Europe/London</option>
               <option value="America/New_York">America/New_York</option>
               <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
+            </select> */}
 
             <label>Rôle spécifique (optionnel)</label>
             <input
@@ -1986,7 +2289,6 @@ const Horaires = () => {
               <p><strong>Durée :</strong> {formatDuration(viewingRule.duration_minutes)}</p>
               <p><strong>Période :</strong> {viewingRule.effective_from} - {viewingRule.effective_to}</p>
               <p><strong>Assignation :</strong> {viewingRule.apply_to_whole_team ? 'Toute l\'équipe' : `${viewingRule.assigned_user_ids?.length || 0} utilisateur(s)`}</p>
-              <p><strong>Statut :</strong> {viewingRule.is_active ? 'Active' : 'Inactive'}</p>
             </div>
 
             <div className="horaires-modal-buttons" style={{ marginTop: 20 }}>
@@ -2075,7 +2377,7 @@ const Horaires = () => {
               onChange={(e) => setEditingHoraire({ ...editingHoraire, default_duration_minutes: parseInt(e.target.value) || 0 })}
               min="1"
             />
-
+{/* 
             <label>Fuseau horaire *</label>
             <select
               value={editingHoraire.timezone || 'Europe/Paris'}
@@ -2087,7 +2389,7 @@ const Horaires = () => {
               <option value="Europe/London">Europe/London</option>
               <option value="America/New_York">America/New_York</option>
               <option value="Asia/Tokyo">Asia/Tokyo</option>
-            </select>
+            </select> */}
 
             <label>Rôle spécifique (optionnel)</label>
             <input
@@ -2253,7 +2555,6 @@ const Horaires = () => {
               <p><strong>Durée :</strong> {formatDuration(viewingRule.duration_minutes)}</p>
               <p><strong>Période :</strong> {viewingRule.effective_from} - {viewingRule.effective_to}</p>
               <p><strong>Assignation :</strong> {viewingRule.apply_to_whole_team ? 'Toute l\'équipe' : `${viewingRule.assigned_user_ids?.length || 0} utilisateur(s)`}</p>
-              <p><strong>Statut :</strong> {viewingRule.is_active ? 'Active' : 'Inactive'}</p>
             </div>
 
             <div className="horaires-modal-buttons" style={{ marginTop: 20 }}>
