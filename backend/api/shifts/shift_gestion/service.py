@@ -67,10 +67,47 @@ class ShiftRuleManager(AbstractManager):
         return ShiftRuleRepository.get_by_id(rule_id)
 
     @staticmethod
-    def update_rule(rule_id: str, apply_to_whole_team: bool):
-        return ShiftRuleRepository.update_rule(
-            rule_id=rule_id, apply_to_whole_team=apply_to_whole_team
-        )
+    def update_rule(
+        rule_id: str,
+        weekday=None,
+        start_local_time=None,
+        duration_minutes=None,
+        effective_from=None,
+        effective_to=None,
+        apply_to_whole_team=None,
+        assigned_user_ids=None,
+    ):
+        fields = {}
+        if weekday is not None:
+            fields["weekday"] = weekday
+        if start_local_time is not None:
+            fields["start_local_time"] = start_local_time
+        if duration_minutes is not None:
+            fields["duration_minutes"] = duration_minutes
+        if effective_from is not None:
+            fields["effective_from"] = effective_from
+        if effective_to is not None:
+            fields["effective_to"] = effective_to
+        if apply_to_whole_team is not None:
+            fields["apply_to_whole_team"] = apply_to_whole_team
+
+        res = ShiftRuleRepository.update_rule(rule_id=rule_id, **fields)
+        if isinstance(res, dict) and "error" in res:
+            return res
+
+        if assigned_user_ids is not None:
+            if apply_to_whole_team:
+                cleared = ShiftRuleRepository.clear_assigned_users(rule_id)
+                if isinstance(cleared, dict) and "error" in cleared:
+                    return cleared
+                res = cleared
+            else:
+                assigned = ShiftRuleRepository.assign_users(rule_id, assigned_user_ids)
+                if isinstance(assigned, dict) and "error" in assigned:
+                    return assigned
+                res = assigned
+
+        return res
 
     @staticmethod
     def clear_assigned_users(rule_id: str):

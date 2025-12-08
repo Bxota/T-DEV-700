@@ -18,6 +18,7 @@ from api.shifts.shift_gestion.views import (
     delete_shift_exception,
     delete_shift_rule,
     list_shift_exception,
+    update_shift_rule,
 )
 
 urlpatterns = [
@@ -49,6 +50,11 @@ urlpatterns = [
         name="delete_shift_templates_by_team",
     ),
     # Shift Rules
+    path(
+        "shift-rules/<int:rule_id>/update",
+        update_shift_rule,
+        name="update_shift_rule",
+    ),
     path(
         "shift-templates/<int:template_id>/rules", add_shift_rule, name="add_shift_rule"
     ),

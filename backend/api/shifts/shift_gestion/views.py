@@ -29,6 +29,7 @@ from db_manager.serializers import (
 from api.shifts.shift_gestion.serializer import (
     CreateTemplateInput,
     UpdateTemplateInput,
+    UpdateRuleInput,
     CreateRuleInput,
     AssignUsersInput,
     CreateExceptionInput,
@@ -436,6 +437,83 @@ def list_shift_rules_by_template(request, template_id: int):
             {"count": len(rules), "results": rules_serialized},
             status=status.HTTP_200_OK,
         )
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
+
+
+# --- GET /api/shift-rules/{rule_id} ---
+@extend_schema(
+    operation_id="shift_rule_update",
+    tags=["Shifts · Manager · Rule"],
+    summary="Mettre à jour une ShiftRule (manager)",
+    description="Met à jour les détails d’une règle (weekday, durée, assignations, exceptions).",
+    responses={
+        200: OpenApiResponse(
+            description="Mets à jour le détail d’une règle",
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "id": 31,
+                        "template_id": 12,
+                        "weekday": 2,
+                        "start_local_time": "08:00:00",
+                        "duration_minutes": 480,
+                        "effective_from": "2025-10-01",
+                        "effective_to": None,
+                        "apply_to_whole_team": True,
+                        "assigned_user_ids": [],
+                        "exceptions": [
+                            {
+                                "id": 7,
+                                "date": "2025-10-15",
+                                "is_skipped": True,
+                                "override_start_local_time": None,
+                                "override_duration_minutes": None,
+                                "note": "Férié local",
+                            }
+                        ],
+                    },
+                )
+            ],
+        ),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftRule introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+    ],
+)
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated, IsTeamManager])
+def update_shift_rule(request, rule_id: int):
+    try:
+        serializer = UpdateRuleInput(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payload = serializer.validated_data
+        res = ShiftRuleManager.update_rule(
+            rule_id=rule_id,
+            weekday=payload.get("weekday"),
+            start_local_time=payload.get("start_local_time"),
+            duration_minutes=payload.get("duration_minutes"),
+            effective_from=payload.get("effective_from"),
+            effective_to=payload.get("effective_to"),
+            apply_to_whole_team=payload.get("apply_to_whole_team"),
+            assigned_user_ids=payload.get("assigned_user_ids"),
+        )
+        res_serialized = ShiftRuleManager.check_db_return(res, ShiftRuleSerializer)
+
+        return Response(res_serialized, status=status.HTTP_200_OK)
+
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
