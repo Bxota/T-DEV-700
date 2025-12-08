@@ -10,24 +10,42 @@ from rest_framework import status
 from api.permissions import IsTeamManager
 from api.shifts.service import ShiftManager
 from api.users.service import UserManager
-from api.shifts.shift_gestion.service import ShiftExceptionManager, ShiftRuleManager, ShiftTemplateManager 
+from api.shifts.shift_gestion.service import (
+    ShiftExceptionManager,
+    ShiftRuleManager,
+    ShiftTemplateManager,
+)
 
 from db_manager.models import Users, Shifts
 from db_manager.repositories.shift_template_repository import ShiftTemplateRepository
 from db_manager.repositories.shift_rule_repository import ShiftRuleRepository
-from db_manager.serializers import ShiftTemplateSerializer, ShiftRuleSerializer, ShiftExceptionSerializer, ShiftSerializer
+from db_manager.serializers import (
+    ShiftTemplateSerializer,
+    ShiftRuleSerializer,
+    ShiftExceptionSerializer,
+    ShiftSerializer,
+)
 
 from api.shifts.shift_gestion.serializer import (
-    CreateTemplateInput, UpdateTemplateInput, CreateRuleInput, AssignUsersInput, CreateExceptionInput, UpdateExceptionInput
+    CreateTemplateInput,
+    UpdateTemplateInput,
+    CreateRuleInput,
+    AssignUsersInput,
+    CreateExceptionInput,
+    UpdateExceptionInput,
 )
 from api.shifts.generator import generate_occurrences_for_window
 
 from drf_spectacular.utils import (
-    extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiExample,
 )
 from drf_spectacular.types import OpenApiTypes
 
 # --- 1) POST /api/teams/{team_id}/shift-templates/ ---
+
 
 @extend_schema(
     operation_id="shift_template_create",
@@ -48,8 +66,8 @@ from drf_spectacular.types import OpenApiTypes
                         "role_id": None,
                         "default_duration_minutes": 480,
                         "timezone": "Europe/Paris",
-                        "is_active": True
-                    }
+                        "is_active": True,
+                    },
                 )
             ],
         ),
@@ -57,7 +75,12 @@ from drf_spectacular.types import OpenApiTypes
         403: OpenApiResponse(description="Interdit (manager requis)"),
     },
     parameters=[
-        OpenApiParameter(name="team_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="team_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["POST"])
@@ -66,7 +89,9 @@ def create_shift_template(request, team_id: int):
     try:
         serializer = CreateTemplateInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
         res = ShiftTemplateManager.create_template(
@@ -78,13 +103,16 @@ def create_shift_template(request, team_id: int):
             role_id=payload.get("role_id"),
             is_active=payload.get("is_active", True),
         )
-        
-        res_serialized = ShiftTemplateManager.check_db_return(res, ShiftTemplateSerializer)
-        
+
+        res_serialized = ShiftTemplateManager.check_db_return(
+            res, ShiftTemplateSerializer
+        )
+
         return Response(res_serialized, status=status.HTTP_201_CREATED)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
-    
+
+
 # --- LIST & RETRIEVE: Shift Templates (manager only) ---
 @extend_schema(
     operation_id="shift_template_list_by_team",
@@ -94,44 +122,65 @@ def create_shift_template(request, team_id: int):
     responses={
         200: OpenApiResponse(
             description="Liste des templates",
-            examples=[OpenApiExample(
-                "Succès",
-                value={
-                    "count": 1,
-                    "results": [
-                        {
-                            "id": 12,
-                            "name": "Matin standard",
-                            "team_id": 4,
-                            "role_id": None,
-                            "default_duration_minutes": 480,
-                            "timezone": "Europe/Paris",
-                            "is_active": True
-                        }
-                    ]
-                }
-            )]
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "count": 1,
+                        "results": [
+                            {
+                                "id": 12,
+                                "name": "Matin standard",
+                                "team_id": 4,
+                                "role_id": None,
+                                "default_duration_minutes": 480,
+                                "timezone": "Europe/Paris",
+                                "is_active": True,
+                            }
+                        ],
+                    },
+                )
+            ],
         ),
         403: OpenApiResponse(description="Interdit (manager requis)"),
     },
     parameters=[
-        OpenApiParameter(name="team_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
-        OpenApiParameter(name="active_only", type=OpenApiTypes.BOOL, location=OpenApiParameter.QUERY, required=False,
-                         description="Filtrer uniquement les templates actifs (true/false)."),
+        OpenApiParameter(
+            name="team_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+        OpenApiParameter(
+            name="active_only",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Filtrer uniquement les templates actifs (true/false).",
+        ),
     ],
 )
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsTeamManager])
 def list_shift_templates_by_team(request, team_id: int):
     try:
-        active_only = ShiftTemplateManager.check_query_param_element_str(request, "active_only") in ("1", "true", "yes")
-        qs = ShiftTemplateManager.get_shift_template_by_team_id(team_id, active_only).order_by("name", "id")
-        
-        qs_serialized = ShiftTemplateManager.check_db_return(qs, ShiftTemplateSerializer)
+        active_only = ShiftTemplateManager.check_query_param_element_str(
+            request, "active_only"
+        ) in ("1", "true", "yes")
+        qs = ShiftTemplateManager.get_shift_template_by_team_id(
+            team_id, active_only
+        ).order_by("name", "id")
 
-        return Response({"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK)
+        qs_serialized = ShiftTemplateManager.check_db_return(
+            qs, ShiftTemplateSerializer
+        )
+
+        return Response(
+            {"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK
+        )
     except APIException as e:
         return Response(e.detail, status=e.status_code)
+
 
 @extend_schema(
     operation_id="shift_template_update",
@@ -142,25 +191,32 @@ def list_shift_templates_by_team(request, team_id: int):
     responses={
         200: OpenApiResponse(
             description="Détail du template",
-            examples=[OpenApiExample(
-                "Succès",
-                value={
-                    "id": 12,
-                    "name": "Matin standard",
-                    "team_id": 4,
-                    "role_id": None,
-                    "default_duration_minutes": 480,
-                    "timezone": "Europe/Paris",
-                    "is_active": True,
-                }
-            )]
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "id": 12,
+                        "name": "Matin standard",
+                        "team_id": 4,
+                        "role_id": None,
+                        "default_duration_minutes": 480,
+                        "timezone": "Europe/Paris",
+                        "is_active": True,
+                    },
+                )
+            ],
         ),
         400: OpenApiResponse(description="Erreur de validation"),
         403: OpenApiResponse(description="Interdit (manager requis)"),
         404: OpenApiResponse(description="ShiftTemplate introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="template_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["PUT"])
@@ -169,7 +225,9 @@ def update_shift_template(request, template_id: int):
     try:
         serializer = UpdateTemplateInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
         res = ShiftTemplateManager.update_template(
@@ -180,13 +238,16 @@ def update_shift_template(request, template_id: int):
             role_id=payload.get("role_id"),
             is_active=payload.get("is_active", True),
         )
-        
-        res_serialized = ShiftTemplateManager.check_db_return(res, ShiftTemplateSerializer)
-        
+
+        res_serialized = ShiftTemplateManager.check_db_return(
+            res, ShiftTemplateSerializer
+        )
+
         return Response(res_serialized, status=status.HTTP_200_OK)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
-    
+
+
 @extend_schema(
     operation_id="shift_template_delete",
     tags=["Shifts · Manager · Template"],
@@ -198,7 +259,12 @@ def update_shift_template(request, template_id: int):
         404: OpenApiResponse(description="ShiftTemplate introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="template_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["DELETE"])
@@ -212,7 +278,8 @@ def delete_shift_template(request, template_id: int):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
-    
+
+
 @extend_schema(
     operation_id="shift_template_retrieve",
     tags=["Shifts · Manager · Template"],
@@ -221,46 +288,53 @@ def delete_shift_template(request, template_id: int):
     responses={
         200: OpenApiResponse(
             description="Détail du template",
-            examples=[OpenApiExample(
-                "Succès",
-                value={
-                    "id": 12,
-                    "name": "Matin standard",
-                    "team_id": 4,
-                    "role_id": None,
-                    "default_duration_minutes": 480,
-                    "timezone": "Europe/Paris",
-                    "is_active": True,
-                    "rules": [
-                        {
-                            "id": 31,
-                            "weekday": 2,
-                            "start_local_time": "08:00:00",
-                            "duration_minutes": 480,
-                            "effective_from": "2025-10-01",
-                            "effective_to": None,
-                            "apply_to_whole_team": True,
-                            "assigned_user_ids": [],
-                            "exceptions": [
-                                {
-                                    "id": 7,
-                                    "date": "2025-10-15",
-                                    "is_skipped": True,
-                                    "override_start_local_time": None,
-                                    "override_duration_minutes": None,
-                                    "note": "Férié local"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            )]
+            examples=[
+                OpenApiExample(
+                    "Succès",
+                    value={
+                        "id": 12,
+                        "name": "Matin standard",
+                        "team_id": 4,
+                        "role_id": None,
+                        "default_duration_minutes": 480,
+                        "timezone": "Europe/Paris",
+                        "is_active": True,
+                        "rules": [
+                            {
+                                "id": 31,
+                                "weekday": 2,
+                                "start_local_time": "08:00:00",
+                                "duration_minutes": 480,
+                                "effective_from": "2025-10-01",
+                                "effective_to": None,
+                                "apply_to_whole_team": True,
+                                "assigned_user_ids": [],
+                                "exceptions": [
+                                    {
+                                        "id": 7,
+                                        "date": "2025-10-15",
+                                        "is_skipped": True,
+                                        "override_start_local_time": None,
+                                        "override_duration_minutes": None,
+                                        "note": "Férié local",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                )
+            ],
         ),
         403: OpenApiResponse(description="Interdit (manager requis)"),
         404: OpenApiResponse(description="ShiftTemplate introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="template_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["GET"])
@@ -268,20 +342,25 @@ def delete_shift_template(request, template_id: int):
 def retrieve_shift_template(request, template_id: int):
     try:
         tpl = ShiftTemplateManager.get_shift_template_by_id(template_id)
-        rules_qs = (
-            ShiftRuleManager.get_shift_rule_by_template_id(tpl.id)
-            .order_by("weekday", "start_local_time")
+        rules_qs = ShiftRuleManager.get_shift_rule_by_template_id(tpl.id).order_by(
+            "weekday", "start_local_time"
         )
-        
-        tpl_serialized = ShiftTemplateManager.check_db_return(tpl, ShiftTemplateSerializer)
+
+        tpl_serialized = ShiftTemplateManager.check_db_return(
+            tpl, ShiftTemplateSerializer
+        )
         rules_serialized = []
-        
+
         for r in rules_qs:
             r_serialized = ShiftRuleManager.check_db_return(r, ShiftRuleSerializer)
 
             # Récupérer les exceptions triées pour CETTE règle
-            ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(rule_id=r.id).order_by("date")
-            ex_serialized = ShiftExceptionManager.check_db_return(ex_qs, ShiftExceptionSerializer)
+            ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(
+                rule_id=r.id
+            ).order_by("date")
+            ex_serialized = ShiftExceptionManager.check_db_return(
+                ex_qs, ShiftExceptionSerializer
+            )
 
             # Attacher au dict de la règle
             r_serialized["exceptions"] = ex_serialized
@@ -292,6 +371,7 @@ def retrieve_shift_template(request, template_id: int):
         return Response(tpl_serialized, status=status.HTTP_200_OK)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
+
 
 # --- GET /api/shift-templates/{template_id}/rules ---
 @extend_schema(
@@ -328,7 +408,7 @@ def retrieve_shift_template(request, template_id: int):
                                 "apply_to_whole_team": False,
                                 "assigned_user_ids": [8, 9],
                             },
-                        ]
+                        ],
                     },
                 )
             ],
@@ -337,7 +417,12 @@ def retrieve_shift_template(request, template_id: int):
         404: OpenApiResponse(description="ShiftTemplate introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="template_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["GET"])
@@ -347,7 +432,10 @@ def list_shift_rules_by_template(request, template_id: int):
         rules = ShiftRuleManager.get_shift_rule_by_template_id(template_id)
         rules_serialized = ShiftRuleManager.check_db_return(rules, ShiftRuleSerializer)
 
-        return Response({"count": len(rules), "results": rules_serialized}, status=status.HTTP_200_OK)
+        return Response(
+            {"count": len(rules), "results": rules_serialized},
+            status=status.HTTP_200_OK,
+        )
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
@@ -392,7 +480,12 @@ def list_shift_rules_by_template(request, template_id: int):
         404: OpenApiResponse(description="ShiftRule introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="rule_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["GET"])
@@ -401,19 +494,25 @@ def retrieve_shift_rule(request, rule_id: int):
     try:
         rule = ShiftRuleManager.get_shift_rule_by_id(rule_id)
         rule_serialized = ShiftRuleManager.check_db_return(rule, ShiftRuleSerializer)
-        
+
         # Récupérer les exceptions triées pour CETTE règle
-        ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(rule_id=rule.id).order_by("date")
-        ex_serialized = ShiftExceptionManager.check_db_return(ex_qs, ShiftExceptionSerializer)
+        ex_qs = ShiftExceptionManager.get_shift_exception_by_rule_id(
+            rule_id=rule.id
+        ).order_by("date")
+        ex_serialized = ShiftExceptionManager.check_db_return(
+            ex_qs, ShiftExceptionSerializer
+        )
 
         # Attacher au dict de la règle
         rule_serialized["exceptions"] = ex_serialized
 
         return Response(rule_serialized, status=status.HTTP_200_OK)
     except APIException as e:
-            return Response(e.detail, status=e.status_code)
+        return Response(e.detail, status=e.status_code)
+
 
 # --- 2) POST /api/shift-templates/{template_id}/rules/ ---
+
 
 @extend_schema(
     operation_id="shift_rule_create",
@@ -439,8 +538,8 @@ def retrieve_shift_rule(request, rule_id: int):
                         "effective_from": "2025-10-01",
                         "effective_to": None,
                         "apply_to_whole_team": True,
-                        "assigned_user_ids": []
-                    }
+                        "assigned_user_ids": [],
+                    },
                 )
             ],
         ),
@@ -449,7 +548,12 @@ def retrieve_shift_rule(request, rule_id: int):
         404: OpenApiResponse(description="ShiftTemplate introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="template_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="template_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["POST"])
@@ -457,10 +561,12 @@ def retrieve_shift_rule(request, rule_id: int):
 def add_shift_rule(request, template_id: int):
     try:
         tpl = ShiftTemplateManager.get_shift_template_by_id(template_id)
-        
+
         serializer = CreateRuleInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
         res = ShiftRuleRepository.create_rule(
@@ -473,7 +579,7 @@ def add_shift_rule(request, template_id: int):
             apply_to_whole_team=payload.get("apply_to_whole_team", False),
             assigned_user_ids=payload.get("assigned_user_ids"),
         )
-        
+
         res_serialized = ShiftRuleManager.check_db_return(res, ShiftRuleSerializer)
 
         return Response(res_serialized, status=status.HTTP_201_CREATED)
@@ -481,7 +587,41 @@ def add_shift_rule(request, template_id: int):
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
+
+@extend_schema(
+    operation_id="shift_rule_delete",
+    tags=["Shifts · Manager · Rule"],
+    summary="Supprimer une règle (manager)",
+    description="Supprime définitivement une **ShiftRule** donnée.",
+    responses={
+        204: OpenApiResponse(description="Règle supprimée"),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftRule introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+    ],
+)
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, IsTeamManager])
+def delete_shift_rule(request, rule_id: str):
+    try:
+        res = ShiftRuleManager.delete_rule(rule_id=rule_id)
+        if isinstance(res, dict) and "error" in res:
+            return Response(res, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
+
+
 # --- 3) POST /api/shift-rules/{rule_id}/assign-users/ ---
+
 
 @extend_schema(
     operation_id="shift_rule_assign_users",
@@ -502,8 +642,8 @@ def add_shift_rule(request, template_id: int):
                         "id": 31,
                         "template_id": 12,
                         "apply_to_whole_team": True,
-                        "assigned_user_ids": []
-                    }
+                        "assigned_user_ids": [],
+                    },
                 ),
                 OpenApiExample(
                     "Subset users",
@@ -511,8 +651,8 @@ def add_shift_rule(request, template_id: int):
                         "id": 31,
                         "template_id": 12,
                         "apply_to_whole_team": False,
-                        "assigned_user_ids": [8, 9]
-                    }
+                        "assigned_user_ids": [8, 9],
+                    },
                 ),
             ],
         ),
@@ -521,7 +661,12 @@ def add_shift_rule(request, template_id: int):
         404: OpenApiResponse(description="ShiftRule introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="rule_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["POST"])
@@ -533,7 +678,9 @@ def assign_rule_users(request, rule_id: int):
 
         serializer = AssignUsersInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
         if payload.get("apply_to_whole_team") is True:
@@ -541,32 +688,39 @@ def assign_rule_users(request, rule_id: int):
             upd = ShiftRuleManager.update_rule(rule.id, apply_to_whole_team=True)
             upd_serialized = ShiftRuleManager.check_db_return(upd, ShiftRuleSerializer)
             cleared = ShiftRuleManager.clear_assigned_users(rule.id)
-            
+
             if isinstance(cleared, dict) and "error" in cleared:
                 return Response(cleared, status=status.HTTP_400_BAD_REQUEST)
-            
+
             rule.refresh_from_db()
-        
+
         else:
             # définir user_ids (et forcer apply_to_whole_team=False)
             user_ids = payload.get("user_ids", [])
-            
+
             res = ShiftRuleManager.assign_users(rule.id, user_ids)
             if isinstance(res, dict) and "error" in res:
                 return Response(res, status=status.HTTP_400_BAD_REQUEST)
             rule = res
 
-        return Response({
-            "id": rule.id,
-            "template_id": rule.template_id,
-            "apply_to_whole_team": rule.apply_to_whole_team,
-            "assigned_user_ids": list(rule.assigned_users.values_list("id", flat=True)),
-        }, status=status.HTTP_200_OK)
-        
+        return Response(
+            {
+                "id": rule.id,
+                "template_id": rule.template_id,
+                "apply_to_whole_team": rule.apply_to_whole_team,
+                "assigned_user_ids": list(
+                    rule.assigned_users.values_list("id", flat=True)
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )
+
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
+
 # --- 4) POST /api/shift-rules/{rule_id}/exceptions/ ---
+
 
 @extend_schema(
     operation_id="shift_rule_add_exception",
@@ -585,60 +739,13 @@ def assign_rule_users(request, rule_id: int):
                     "Skip",
                     value={
                         "id": 7,
-                        "rule_id": 31,
-                        "date": "2025-10-15",
-                        "is_skipped": True,
-                        "override_start_local_time": None,
-                        "override_duration_minutes": None,
-                        "note": "Férié local"
-                    }
-                ),
-                OpenApiExample(
-                    "Override",
-                    value={
-                        "id": 8,
-                        "rule_id": 31,
-                        "date": "2025-10-14",
-                        "is_skipped": False,
-                        "override_start_local_time": "10:00:00",
-                        "override_duration_minutes": 300,
-                        "note": "Réunion matin"
-                    }
-                ),
-            ],
-        ),
-        400: OpenApiResponse(description="Erreur de validation / doublon (rule+date)"),
-        403: OpenApiResponse(description="Interdit (manager requis)"),
-        404: OpenApiResponse(description="ShiftRule introuvable"),
-    },
-    parameters=[
-        OpenApiParameter(name="rule_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
-    ],
-)
-@extend_schema(
-    operation_id="shift_rule_add_exception",
-    tags=["Shifts · Manager · Exception"],
-    summary="Ajouter une exception sur une date (manager)",
-    description=(
-        "Crée une **ShiftException** pour une date précise : soit `is_skipped=true` (on saute), "
-        "soit override des horaires (`override_start_local_time`, `override_duration_minutes`)."
-    ),
-    request=CreateExceptionInput,
-    responses={
-        201: OpenApiResponse(
-            description="Exception créée",
-            examples=[
-                OpenApiExample(
-                    "Skip",
-                    value={
-                        "id": 7,
                         "rule": 31,
                         "date": "2025-10-15",
                         "is_skipped": True,
                         "override_start_local_time": None,
                         "override_duration_minutes": None,
-                        "note": "Férié local"
-                    }
+                        "note": "Férié local",
+                    },
                 ),
                 OpenApiExample(
                     "Override",
@@ -649,8 +756,8 @@ def assign_rule_users(request, rule_id: int):
                         "is_skipped": False,
                         "override_start_local_time": "10:00:00",
                         "override_duration_minutes": 300,
-                        "note": "Réunion matin"
-                    }
+                        "note": "Réunion matin",
+                    },
                 ),
             ],
         ),
@@ -659,7 +766,12 @@ def assign_rule_users(request, rule_id: int):
         404: OpenApiResponse(description="ShiftRule introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="rule_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["POST"])
@@ -668,10 +780,12 @@ def add_shift_exception(request, rule_id: int):
     try:
         serializer = CreateExceptionInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
-        
+
         res = ShiftExceptionManager.create_exception(
             rule_id=rule_id,
             date=payload["date"],
@@ -681,14 +795,21 @@ def add_shift_exception(request, rule_id: int):
             note=payload.get("note", "") or "",
         )
         if isinstance(res, dict) and "error" in res:
-            status_code = status.HTTP_404_NOT_FOUND if res["error"] == "ShiftRule not found" else status.HTTP_400_BAD_REQUEST
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if res["error"] == "ShiftRule not found"
+                else status.HTTP_400_BAD_REQUEST
+            )
             return Response(res, status=status_code)
 
-        res_serialized = ShiftExceptionManager.check_db_return(res, ShiftExceptionSerializer)
-        
+        res_serialized = ShiftExceptionManager.check_db_return(
+            res, ShiftExceptionSerializer
+        )
+
         return Response(res_serialized, status=status.HTTP_201_CREATED)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
+
 
 @extend_schema(
     operation_id="shift_exception_update",
@@ -719,19 +840,26 @@ def add_shift_exception(request, rule_id: int):
         404: OpenApiResponse(description="ShiftException introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="exception_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="exception_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated, IsTeamManager])
 def update_shift_exception(request, exception_id: str):
-    try: 
+    try:
         serializer = UpdateExceptionInput(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         payload = serializer.validated_data
-        
+
         res = ShiftExceptionManager.update_exception(
             exception_id=exception_id,
             date=payload["date"],
@@ -741,14 +869,21 @@ def update_shift_exception(request, exception_id: str):
             note=payload.get("note", "") or "",
         )
         if isinstance(res, dict) and "error" in res:
-            status_code = status.HTTP_404_NOT_FOUND if res["error"] == "ShiftException not found" else status.HTTP_400_BAD_REQUEST
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if res["error"] == "ShiftException not found"
+                else status.HTTP_400_BAD_REQUEST
+            )
             return Response(res, status=status_code)
 
-        res_serialized = ShiftExceptionManager.check_db_return(res, ShiftExceptionSerializer)
-        
+        res_serialized = ShiftExceptionManager.check_db_return(
+            res, ShiftExceptionSerializer
+        )
+
         return Response(res_serialized, status=status.HTTP_200_OK)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
+
 
 @extend_schema(
     operation_id="shift_exception_delete",
@@ -761,13 +896,18 @@ def update_shift_exception(request, exception_id: str):
         404: OpenApiResponse(description="ShiftException introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="exception_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
+        OpenApiParameter(
+            name="exception_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
     ],
 )
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated, IsTeamManager])
 def delete_shift_exception(request, exception_id: str):
-    try: 
+    try:
         res = ShiftExceptionManager.delete_exception(exception_id=exception_id)
         if isinstance(res, dict) and "error" in res:
             return Response(res, status=status.HTTP_404_NOT_FOUND)
@@ -776,7 +916,9 @@ def delete_shift_exception(request, exception_id: str):
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
+
 # --- 5) POST /api/teams/{team_id}/shifts/generate?days=56 ---
+
 
 @extend_schema(
     operation_id="shift_generate_occurrences",
@@ -789,18 +931,24 @@ def delete_shift_exception(request, exception_id: str):
     responses={
         200: OpenApiResponse(
             description="OK",
-            examples=[
-                OpenApiExample("Succès", value={"created": 24})
-            ],
+            examples=[OpenApiExample("Succès", value={"created": 24})],
         ),
         400: OpenApiResponse(description="Paramètre `days` invalide"),
         403: OpenApiResponse(description="Interdit (manager requis)"),
     },
     parameters=[
-        OpenApiParameter(name="team_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
         OpenApiParameter(
-            name="days", type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, required=False,
-            description="Nombre de jours à générer (1..365). Par défaut 56."
+            name="team_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+        OpenApiParameter(
+            name="days",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Nombre de jours à générer (1..365). Par défaut 56.",
         ),
     ],
 )
@@ -815,17 +963,26 @@ def generate_team_shifts(request, team_id: int):
             days = 56
 
         if days < 1 or days > 365:
-            return Response({"error": "days must be in [1..365]"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "days must be in [1..365]"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     except ValueError:
-        return Response({"error": "days must be integer"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "days must be integer"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     today = date.today()
-    res = generate_occurrences_for_window(today, today + timedelta(days=days), team_id=team_id)
-    
+    res = generate_occurrences_for_window(
+        today, today + timedelta(days=days), team_id=team_id
+    )
+
     return Response({"created": res.get("created", 0)}, status=status.HTTP_200_OK)
 
+
 # --- 6) GET /api/users/{user_id}/shifts?from=...&to=... ---
+
 
 @extend_schema(
     operation_id="user_shifts_list_window",
@@ -852,7 +1009,7 @@ def generate_team_shifts(request, team_id: int):
                                 "template_id": 12,
                                 "rule_id": 31,
                                 "real_start_time": None,
-                                "real_end_time": None
+                                "real_end_time": None,
                             },
                             {
                                 "id": 111,
@@ -862,10 +1019,10 @@ def generate_team_shifts(request, team_id: int):
                                 "template_id": 12,
                                 "rule_id": 31,
                                 "real_start_time": "2025-10-16T08:03:12+00:00",
-                                "real_end_time": "2025-10-16T15:59:41+00:00"
-                            }
-                        ]
-                    }
+                                "real_end_time": "2025-10-16T15:59:41+00:00",
+                            },
+                        ],
+                    },
                 )
             ],
         ),
@@ -874,11 +1031,26 @@ def generate_team_shifts(request, team_id: int):
         404: OpenApiResponse(description="Utilisateur introuvable"),
     },
     parameters=[
-        OpenApiParameter(name="user_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
-        OpenApiParameter(name="from", type=OpenApiTypes.DATETIME, location=OpenApiParameter.QUERY, required=True,
-                         description="Datetime ISO 8601, ex: 2025-10-13T00:00:00Z"),
-        OpenApiParameter(name="to", type=OpenApiTypes.DATETIME, location=OpenApiParameter.QUERY, required=True,
-                         description="Datetime ISO 8601, ex: 2025-10-19T23:59:59Z"),
+        OpenApiParameter(
+            name="user_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+        OpenApiParameter(
+            name="from",
+            type=OpenApiTypes.DATETIME,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Datetime ISO 8601, ex: 2025-10-13T00:00:00Z",
+        ),
+        OpenApiParameter(
+            name="to",
+            type=OpenApiTypes.DATETIME,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Datetime ISO 8601, ex: 2025-10-19T23:59:59Z",
+        ),
     ],
 )
 @api_view(["GET"])
@@ -887,31 +1059,44 @@ def list_user_shifts_window(request, user_id: int):
     try:
         # Autz: le user lui-même OU le manager de son équipe
         target = UserManager.get_user_by_id(user_id)
-        
+
         # fenêtre
         try:
             from_str = ShiftManager.check_query_param_element_str(request, "from")
             to_str = ShiftManager.check_query_param_element_str(request, "to")
             if not from_str or not to_str:
-                return Response({"error": "Query params 'from' and 'to' are required (ISO dates)."}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response(
+                    {"error": "Query params 'from' and 'to' are required (ISO dates)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             start = ShiftManager.parse_iso_query_datetime(from_str)
             end = ShiftManager.parse_iso_query_datetime(to_str)
-            
+
             if end <= start:
-                return Response({"error": "'to' must be after 'from'."}, status=status.HTTP_400_BAD_REQUEST)
-        
+                return Response(
+                    {"error": "'to' must be after 'from'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         except Exception:
-            return Response({"error": "Invalid 'from'/'to' format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid 'from'/'to' format. Use ISO 8601."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         qs = ShiftManager.list_shifts_by_user_id_and_date(user_id, start=start, end=end)
         qs_serialized = ShiftManager.check_db_return(qs, ShiftSerializer)
 
-        return Response({"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK)
+        return Response(
+            {"count": len(qs), "results": qs_serialized}, status=status.HTTP_200_OK
+        )
     except APIException as e:
         return Response(e.detail, status=e.status_code)
 
+
 # --- 7) (optionnel) GET /api/teams/{team_id}/calendar?from=...&to=... ---
+
 
 @extend_schema(
     operation_id="team_calendar",
@@ -940,7 +1125,7 @@ def list_user_shifts_window(request, user_id: int):
                                 "start_time": "2025-10-14T08:00:00+00:00",
                                 "end_time": "2025-10-14T16:00:00+00:00",
                                 "template_id": 12,
-                                "rule_id": 31
+                                "rule_id": 31,
                             },
                             {
                                 "shift_id": 102,
@@ -949,10 +1134,10 @@ def list_user_shifts_window(request, user_id: int):
                                 "start_time": "2025-10-15T08:00:00+00:00",
                                 "end_time": "2025-10-15T16:00:00+00:00",
                                 "template_id": 12,
-                                "rule_id": 31
-                            }
-                        ]
-                    }
+                                "rule_id": 31,
+                            },
+                        ],
+                    },
                 )
             ],
         ),
@@ -960,11 +1145,26 @@ def list_user_shifts_window(request, user_id: int):
         403: OpenApiResponse(description="Interdit (manager requis)"),
     },
     parameters=[
-        OpenApiParameter(name="team_id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH, required=True),
-        OpenApiParameter(name="from", type=OpenApiTypes.DATETIME, location=OpenApiParameter.QUERY, required=True,
-                         description="Datetime ISO 8601, ex: 2025-10-13T00:00:00Z"),
-        OpenApiParameter(name="to", type=OpenApiTypes.DATETIME, location=OpenApiParameter.QUERY, required=True,
-                         description="Datetime ISO 8601, ex: 2025-10-19T23:59:59Z"),
+        OpenApiParameter(
+            name="team_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+        OpenApiParameter(
+            name="from",
+            type=OpenApiTypes.DATETIME,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Datetime ISO 8601, ex: 2025-10-13T00:00:00Z",
+        ),
+        OpenApiParameter(
+            name="to",
+            type=OpenApiTypes.DATETIME,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Datetime ISO 8601, ex: 2025-10-19T23:59:59Z",
+        ),
     ],
 )
 @api_view(["GET"])
@@ -991,16 +1191,18 @@ def team_calendar_view(request, team_id: int):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        shifts = ShiftManager.list_shifts_by_team_id(team_id, from_date=start, to_date=end)
+        shifts = ShiftManager.list_shifts_by_team_id(
+            team_id, from_date=start, to_date=end
+        )
         shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
         team_serialized = {
             "team_id": team_id,
             "from": start,
             "to": end,
             "count": len(shifts),
-            "results": shifts_serialized
+            "results": shifts_serialized,
         }
-        
+
         return Response(team_serialized, status=status.HTTP_200_OK)
     except APIException as e:
         return Response(e.detail, status=e.status_code)
