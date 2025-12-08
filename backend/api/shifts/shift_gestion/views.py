@@ -802,7 +802,7 @@ def assign_rule_users(request, rule_id: int):
     tags=["Shifts · Manager · Exception"],
     summary="Lister les exceptions d'un shift (manager)",
     description=("Récupère toutes les **ShiftException** pour une règle donnée."),
-    request=CreateExceptionInput,
+    request=None,
     responses={
         200: OpenApiResponse(
             description="Liste des exceptions",
@@ -850,14 +850,6 @@ def assign_rule_users(request, rule_id: int):
 @permission_classes([IsAuthenticated, IsTeamManager])
 def list_shift_exception(request):
     try:
-        serializer = CreateExceptionInput(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        payload = serializer.validated_data
-
         res = ShiftExceptionManager.list_exceptions()
         if isinstance(res, dict) and "error" in res:
             status_code = (
