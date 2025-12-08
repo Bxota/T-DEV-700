@@ -719,6 +719,85 @@ def assign_rule_users(request, rule_id: int):
         return Response(e.detail, status=e.status_code)
 
 
+@extend_schema(
+    operation_id="list_shift_exception",
+    tags=["Shifts · Manager · Exception"],
+    summary="Lister les exceptions d'un shift (manager)",
+    description=("Récupère toutes les **ShiftException** pour une règle donnée."),
+    request=CreateExceptionInput,
+    responses={
+        200: OpenApiResponse(
+            description="Liste des exceptions",
+            examples=[
+                OpenApiExample(
+                    "Skip",
+                    value={
+                        "id": 7,
+                        "rule": 31,
+                        "date": "2025-10-15",
+                        "is_skipped": True,
+                        "override_start_local_time": None,
+                        "override_duration_minutes": None,
+                        "note": "Férié local",
+                    },
+                ),
+                OpenApiExample(
+                    "Override",
+                    value={
+                        "id": 8,
+                        "rule": 31,
+                        "date": "2025-10-14",
+                        "is_skipped": False,
+                        "override_start_local_time": "10:00:00",
+                        "override_duration_minutes": 300,
+                        "note": "Réunion matin",
+                    },
+                ),
+            ],
+        ),
+        400: OpenApiResponse(description="Erreur de validation / doublon (rule+date)"),
+        403: OpenApiResponse(description="Interdit (manager requis)"),
+        404: OpenApiResponse(description="ShiftRule introuvable"),
+    },
+    parameters=[
+        OpenApiParameter(
+            name="rule_id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            required=True,
+        ),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsTeamManager])
+def list_shift_exception(request):
+    try:
+        serializer = CreateExceptionInput(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payload = serializer.validated_data
+
+        res = ShiftExceptionManager.list_exceptions()
+        if isinstance(res, dict) and "error" in res:
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if res["error"] == "ShiftRule not found"
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response(res, status=status_code)
+
+        res_serialized = ShiftExceptionManager.check_db_return(
+            res, ShiftExceptionSerializer
+        )
+
+        return Response(res_serialized, status=status.HTTP_200_OK)
+    except APIException as e:
+        return Response(e.detail, status=e.status_code)
+
+
 # --- 4) POST /api/shift-rules/{rule_id}/exceptions/ ---
 
 

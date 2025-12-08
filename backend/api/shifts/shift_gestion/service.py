@@ -87,6 +87,10 @@ class ShiftRuleManager(AbstractManager):
 
 class ShiftExceptionManager(AbstractManager):
     @staticmethod
+    def list_exceptions():
+        return ShiftExceptionRepository.list_all()
+
+    @staticmethod
     def get_shift_exception_by_rule_id(rule_id: str):
         return ShiftExceptionRepository.list_by_rule(rule_id)
 

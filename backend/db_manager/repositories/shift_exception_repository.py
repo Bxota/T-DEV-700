@@ -5,7 +5,12 @@ from django.db import IntegrityError, transaction
 from db_manager.models import ShiftException, ShiftRule
 from rest_framework.exceptions import APIException
 
+
 class ShiftExceptionRepository:
+    @staticmethod
+    def list_all():
+        return ShiftException.objects.all().order_by("id")
+
     @staticmethod
     def create_exception(
         *,

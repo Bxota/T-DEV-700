@@ -17,6 +17,7 @@ from api.shifts.shift_gestion.views import (
     update_shift_exception,
     delete_shift_exception,
     delete_shift_rule,
+    list_shift_exception,
 )
 
 urlpatterns = [
@@ -66,6 +67,11 @@ urlpatterns = [
         "shift-rules/<int:rule_id>/delete", delete_shift_rule, name="delete_shift_rule"
     ),
     # Shift Exceptions
+    path(
+        "shift-exceptions/list",
+        list_shift_exception,
+        name="list_shift_exception",
+    ),
     path(
         "shift-rules/<int:rule_id>/exceptions",
         add_shift_exception,
