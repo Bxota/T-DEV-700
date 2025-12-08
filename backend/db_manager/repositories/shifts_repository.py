@@ -37,9 +37,14 @@ class ShiftRepository:
             raise APIException({"error": "internal server error.", "status_code": 500})
 
     @staticmethod
-    def get_shifts_by_team_id(team_id):
+    def get_shifts_by_team_id(team_id, from_date=None, to_date=None):
         try:
-            return Shifts.objects.filter(user__team_id=team_id).order_by("id")
+            queryset = Shifts.objects.filter(user__team_id=team_id)
+            if from_date is not None:
+                queryset = queryset.filter(end_time__gte=from_date)
+            if to_date is not None:
+                queryset = queryset.filter(start_time__lte=to_date)
+            return queryset.order_by("id")
         except Exception:
             raise APIException({"error": "internal server error.", "status_code": 500})
 

@@ -991,7 +991,7 @@ def team_calendar_view(request, team_id: int):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        shifts = ShiftManager.list_shifts_by_team_id(team_id)
+        shifts = ShiftManager.list_shifts_by_team_id(team_id, from_date=start, to_date=end)
         shifts_serialized = ShiftManager.check_db_return(shifts, ShiftSerializer)
         team_serialized = {
             "team_id": team_id,
