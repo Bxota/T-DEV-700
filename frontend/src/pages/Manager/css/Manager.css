@@ -229,7 +229,7 @@ body {
   position: fixed;
   bottom: 1px;
   transform: translateX(31.4vw);
-  width: 50px;
+  width: 53px;
   height: 30px;
   background: #5289c3;
   color: white;
@@ -259,9 +259,8 @@ body {
 }
 
 .stats-arrow-btn.active {
-  bottom: calc(50vh - 105px);
+  bottom: 45vh;
   background: #5289c3;
-  border-radius: 15px;
 }
 
 .stats-arrow-btn.active:hover {
@@ -473,7 +472,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 30px auto; /* Centré horizontalement avec auto */
+  margin: 8px 6px; /* Centré horizontalement avec auto */
   padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
