@@ -13,6 +13,7 @@ echo "Export des logs Nginx en JSON (depuis ${SINCE})..."
 # Extraction et formatage des logs JSON nginx
 docker-compose logs --no-log-prefix --since "$SINCE" reverseproxy \
   | grep -v 'healthz' \
+  | grep -v 'node_modules' \
   | grep '^{"time"' \
   | jq -c '.' > "$OUTPUT_FILE"
 

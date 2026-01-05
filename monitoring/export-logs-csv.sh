@@ -16,6 +16,7 @@ echo "timestamp,method,uri,status,bytes_sent,request_time,remote_addr,user_agent
 # Extraction et conversion en CSV
 docker-compose logs --no-log-prefix --since "$SINCE" reverseproxy \
   | grep -v 'healthz' \
+  | grep -v 'node_modules' \
   | grep '^{"time"' \
   | jq -r '[.time, .method, .uri, .status, .bytes_sent, .request_time, .remote_addr, .user_agent, .upstream_time] | @csv' \
   >> "$OUTPUT_FILE"
