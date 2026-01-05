@@ -1,14 +1,187 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getAuthHeaders } from "../../api/auth";
 import "./css/PersonalInfo.css";
 
-export default function PersonalInfo() {
-  const manager = {
-    firstName: "Jean",
-    lastName: "Dupont",
-    position: "Chef d'équipe"
+const defaultManager = {
+  firstName: "Jean",
+  lastName: "Dupont",
+  position: "Chef d'équipe",
+};
+
+export default function PersonalInfo({ selectedUserId }) {
+  const [manager, setManager] = useState(defaultManager);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [userError, setUserError] = useState(null);
+  const [shifts, setShifts] = useState([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+  const [shiftsError, setShiftsError] = useState(null);
+  const [reports, setReports] = useState(null);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [reportsError, setReportsError] = useState(null);
+
+  useEffect(() => {
+    if (!selectedUserId) {
+      setManager(defaultManager);
+      setUserError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingUser(true);
+    setUserError(null);
+
+    const fetchUser = async () => {
+      try {
+        const response = await fetch(`/api/users/${selectedUserId}`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Impossible de récupérer l'utilisateur (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        const user = data.user || data;
+        console.debug("Données utilisateur récupérées", user);
+
+        setManager({
+          firstName: user.first_name || user.firstName || defaultManager.firstName,
+          lastName: user.last_name || user.lastName || defaultManager.lastName,
+          position: (user.role && user.role.name) || user.role_name || user.position || defaultManager.position,
+          team: user.team?.name || user.team_name || "",
+          email: user.email,
+        });
+      } catch (error) {
+        if (!isMounted) return;
+        setUserError(error.message);
+        setManager(defaultManager);
+      } finally {
+        if (isMounted) {
+          setLoadingUser(false);
+        }
+      }
+    };
+
+    fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedUserId]);
+
+  // Récupération des shifts de l'utilisateur pour aujourd'hui
+  useEffect(() => {
+    if (!selectedUserId) {
+      setShifts([]);
+      setShiftsError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingShifts(true);
+    setShiftsError(null);
+
+    const fetchShifts = async () => {
+      try {
+        // Construire la date d'aujourd'hui en ISO
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fromDate = today.toISOString();
+        today.setHours(23, 59, 59, 999);
+        const toDate = today.toISOString();
+
+        const url = `/api/users/${selectedUserId}/shifts/list?from=${encodeURIComponent(fromDate)}&to=${encodeURIComponent(toDate)}`;
+        const response = await fetch(url, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Impossible de récupérer les shifts (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        const todayShifts = Array.isArray(data) ? data : 
+                           Array.isArray(data.results) ? data.results : 
+                           Array.isArray(data.shifts) ? data.shifts : [];
+
+        console.debug("Shifts d'aujourd'hui", todayShifts);
+        setShifts(todayShifts);
+      } catch (error) {
+        if (!isMounted) return;
+        setShiftsError(error.message);
+        setShifts([]);
+      } finally {
+        if (isMounted) {
+          setLoadingShifts(false);
+        }
+      }
+    };
+
+    fetchShifts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedUserId]);
+
+  // Récupération des reports de l'utilisateur
+  useEffect(() => {
+    if (!selectedUserId) {
+      setReports(null);
+      setReportsError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingReports(true);
+    setReportsError(null);
+
+    const fetchReports = async () => {
+      try {
+        const response = await fetch(`/api/users/${selectedUserId}/reports`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Impossible de récupérer les rapports (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        const reportData = data.reports || data;
+        console.debug("Rapports utilisateur", reportData);
+        setReports(reportData);
+      } catch (error) {
+        if (!isMounted) return;
+        setReportsError(error.message);
+        setReports(null);
+      } finally {
+        if (isMounted) {
+          setLoadingReports(false);
+        }
+      }
+    };
+
+    fetchReports();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedUserId]);
+  const formatHour = (isoString) => {
+    if (!isoString) return '--:--';
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '--:--';
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   };
 
   // Horaires de la journée sélectionnée
+  const firstShift = shifts.length > 0 ? shifts[0] : null;
   const todaySchedule = {
     date: new Date().toLocaleDateString('fr-FR', { 
       weekday: 'long', 
@@ -16,28 +189,22 @@ export default function PersonalInfo() {
       month: 'long', 
       year: 'numeric' 
     }),
-    workStart: "08:00",
-    workEnd: "18:00",
-    breaks: [
-      { start: "12:00", end: "13:00", type: "Déjeuner" },
-      { start: "15:30", end: "15:45", type: "Pause" }
-    ],
-    meetings: [
-      { start: "09:00", end: "10:30", title: "Réunion équipe" },
-      { start: "14:00", end: "15:00", title: "Point client" }
-    ]
+    workStart: firstShift ? formatHour(firstShift.start_time) : "08:00",
+    workEnd: firstShift ? formatHour(firstShift.end_time) : "18:00",
   };
 
   // Statistiques personnelles
   const personalStats = {
-    tasksCompleted: 12,
-    totalTasks: 15,
-    hoursWorked: 7.5,
-    delayRate: 85,
-    weeklyGoal: 40
+    absencesCount: reports?.absences_count || 0,
+    absencesRate: reports?.absences_rate || 0,
+    latenessCount: reports?.lateness_count || 0,
+    latenessRate: reports?.lateness_rate || 0,
+    totalShifts: reports?.total_shifts || 0,
+    hoursWorked: reports ? (reports.total_worked_minutes / 60).toFixed(1) : 0,
   };
 
-  const completionRate = Math.round((personalStats.tasksCompleted / personalStats.totalTasks) * 100);
+  const absencePercentage = Math.round(personalStats.absencesRate || 0);
+  const latenessPercentage = Math.round(personalStats.latenessRate || 0);
 
   return (
     <div className="personal-info-sidebar">
@@ -45,9 +212,9 @@ export default function PersonalInfo() {
       <div className="personal-identity">
         <div className="identity-info">
           <h2 className="full-name">
-            {manager.firstName} {manager.lastName}
+            {manager?.firstName || defaultManager.firstName} {manager?.lastName || defaultManager.lastName}
           </h2>
-          <p className="position">{manager.position}</p>
+          <p className="position">{manager?.position || defaultManager.position}</p>
         </div>
       </div>
 
@@ -69,14 +236,22 @@ export default function PersonalInfo() {
 
         <div className="schedule-events">
           <h4 className="events-title">Événements</h4>
-            <div className="schedule-item break">
-              <span className="event-time">08:00 - En cours</span>
-              <span className="event-title">Matin</span>
-            </div>
-            <div className="schedule-item meeting">
-              <span className="event-time"></span>
-              <span className="event-title">Aprem</span>
-            </div>
+          {loadingShifts ? (
+            <p style={{ fontSize: '0.9em', color: '#999' }}>Chargement...</p>
+          ) : shiftsError ? (
+            <p style={{ fontSize: '0.9em', color: '#ff6b6b' }}>Erreur: {shiftsError}</p>
+          ) : shifts.length > 0 ? (
+            shifts.map((shift, index) => (
+              <div key={index} className="schedule-item break">
+                <span className="event-time">
+                  {formatHour(shift.real_start_time)} - {formatHour(shift.real_end_time)}
+                </span>
+                <span className="event-title">Horaires réel</span>
+              </div>
+            ))
+          ) : (
+            <p style={{ fontSize: '0.9em', color: '#999' }}>Aucun shift aujourd'hui</p>
+          )}
         </div>
       </div>
 
@@ -86,8 +261,8 @@ export default function PersonalInfo() {
         
         <div className="stat-grid">
           <div className="stat-card">
-            <div className="stat-number">{personalStats.tasksCompleted}</div>
-            <div className="stat-label">Tâches terminées</div>
+            <div className="stat-number">{personalStats.totalShifts}</div>
+            <div className="stat-label">Shifts totaux</div>
           </div>
           
           <div className="stat-card">
@@ -100,12 +275,12 @@ export default function PersonalInfo() {
           <div className="progress-item">
             <div className="progress-header">
               <span className="progress-label">Taux d'absence</span>
-              <span className="progress-percentage">{completionRate}%</span>
+              <span className="progress-percentage">{absencePercentage}%</span>
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill"
-                style={{ width: `${completionRate}%` }}
+                style={{ width: `${absencePercentage}%` }}
               ></div>
             </div>
           </div>
@@ -113,12 +288,12 @@ export default function PersonalInfo() {
           <div className="progress-item">
             <div className="progress-header">
               <span className="progress-label">Taux de retard</span>
-              <span className="progress-percentage">{personalStats.delayRate}%</span>
+              <span className="progress-percentage">{latenessPercentage}%</span>
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill efficiency"
-                style={{ width: `${personalStats.delayRate}%` }}
+                style={{ width: `${latenessPercentage}%` }}
               ></div>
             </div>
           </div>

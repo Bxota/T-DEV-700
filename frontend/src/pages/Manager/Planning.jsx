@@ -6,13 +6,16 @@ import "./css/Planning.css";
 
 
 export default function Planning({ selectedTeam, selectedDate, teams }) {
-  // Changez le nombre ici pour avoir plus de colonnes
-  const hours = Array.from({ length: 15 }, (_, i) => 7 + i); // 15 colonnes au lieu de 11
+  // Affichage de 7h à 21h (15 colonnes)
+  const hours = Array.from({ length: 15 }, (_, i) => 7 + i);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [usersError, setUsersError] = useState(null);
+  const [shiftsByUser, setShiftsByUser] = useState({});
+  const [loadingShifts, setLoadingShifts] = useState(false);
+  const [shiftsError, setShiftsError] = useState(null);
 
   // Met à jour l'heure actuelle chaque minute
   useEffect(() => {
@@ -67,6 +70,65 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
     return `${year}-${month}-${day}T23:59:59.999Z`;
   };
 
+  // Formate l'heure au format HH:MM
+  const formatHour = (isoString) => {
+    if (!isoString) return '--:--';
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '--:--';
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Détermine la couleur de l'heure en fonction de la conformité
+  const getShiftTimeColor = (realTime, plannedTime, isStartTime) => {
+    const planned = new Date(plannedTime);
+    const now = new Date();
+    
+    if (!realTime) {
+      // Si pas de donnée réelle et l'heure est dépassée, afficher en rouge
+      if (now > planned) {
+        return '#ff0000';
+      }
+      return 'rgba(255, 255, 255, 0.8)'; // Couleur par défaut si pas dépassé
+    }
+    
+    const real = new Date(realTime);
+    
+    if (isStartTime) {
+      // Pour l'heure de début : vert si réelle <= prévue (arrivé à l'heure ou tôt)
+      return real <= planned ? '#00ff00' : '#ff0000';
+    } else {
+      // Pour l'heure de fin : vert si réelle >= prévue (parti à l'heure ou tard)
+      return real >= planned ? '#00ff00' : '#ff0000';
+    }
+  };
+
+  // Calcule la position (left) et la largeur (width) sur la fenêtre 06h-21h en se basant sur 63vw de largeur disponible
+  const getShiftPosition = (startIso, endIso) => {
+    if (!startIso || !endIso) return { left: '0vw', width: '0vw' };
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return { left: '0vw', width: '0vw' };
+    }
+
+    const startHour = 6; // début de la fenêtre affichée
+    const totalMinutes = 15 * 60; // 06h -> 21h = 15 heures
+    const trackVw = 63; // largeur du scheduler en vw
+
+    const minutesFromStart = (start.getHours() * 60 + start.getMinutes()) - (startHour * 60);
+    const minutesToEnd = (end.getHours() * 60 + end.getMinutes()) - (startHour * 60);
+    
+    const clampedStart = Math.max(0, Math.min(totalMinutes, minutesFromStart));
+    const clampedEnd = Math.max(clampedStart, Math.min(totalMinutes, minutesToEnd));
+
+    const leftVw = (clampedStart / totalMinutes) * trackVw;
+    const widthVw = ((clampedEnd - clampedStart) / totalMinutes) * trackVw;
+
+    console.log(`Shift de ${startIso} à ${endIso} => left: ${leftVw}vw, width: ${widthVw}vw`);
+
+    return { left: `${leftVw}vw`, width: `${widthVw}vw` };
+  };
+
   // Récupération des users quand l'équipe change
   useEffect(() => {
     const fetchUsers = async () => {
@@ -74,6 +136,9 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
       if (!selectedTeam) {
         setUsers([]);
         setSelectedUserId(null);
+        setShiftsByUser({});
+        setShiftsError(null);
+        setLoadingShifts(false);
         return;
       }
 
@@ -81,7 +146,7 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
       setUsersError(null);
 
       try {
-        console.log('Fetching users for team:', selectedTeam);
+        // console.log('Fetching users for team:', selectedTeam);
         const response = await fetch(`/api/users/teams/${selectedTeam}/`, {
           method: 'GET',
           headers: getAuthHeaders(),
@@ -112,14 +177,20 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
     };
 
     const fetchShifts = async () => {
-      if (!selectedTeam || !selectedDate) return;
+      if (!selectedTeam || !selectedDate) {
+        setShiftsByUser({});
+        return;
+      }
+
+      setLoadingShifts(true);
+      setShiftsError(null);
       
       try {
         // Convertir la date au format ISO 8601 pour toute la journée
         const fromDate = formatDateToISOStart(selectedDate);  // 00:00:00
         const toDate = formatDateToISOEnd(selectedDate);      // 23:59:59
         
-        console.log('Fetching shifts for team:', selectedTeam, 'from:', fromDate, 'to:', toDate);
+        // console.log('Fetching shifts for team:', selectedTeam, 'from:', fromDate, 'to:', toDate);
         
         const response = await fetch(`/api/teams/${selectedTeam}/calendar?from=${fromDate}&to=${toDate}`, {
           method: 'GET',
@@ -128,10 +199,34 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
 
         if (response.ok) {
           const shiftsData = await response.json();
-          console.log('Shifts reçus pour l\'équipe:', selectedTeam, 'journée complète:', shiftsData);
+          // console.log('Shifts reçus pour l\'équipe:', selectedTeam, 'journée complète:', shiftsData);
+
+          const results = Array.isArray(shiftsData)
+            ? shiftsData
+            : Array.isArray(shiftsData.results)
+              ? shiftsData.results
+              : [];
+
+          // Grouper les shifts par user_id
+          const grouped = results.reduce((acc, shift) => {
+            const userId = shift.user_id || shift.user;
+            if (!userId) return acc;
+            if (!acc[userId]) acc[userId] = [];
+            acc[userId].push(shift);
+            return acc;
+          }, {});
+
+          setShiftsByUser(grouped);
+        } else {
+          setShiftsByUser({});
+          setShiftsError('Impossible de récupérer les shifts');
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des shifts:', error);
+        setShiftsByUser({});
+        setShiftsError(error.message);
+      } finally {
+        setLoadingShifts(false);
       }
     };
 
@@ -169,6 +264,23 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
   // Fonction pour gérer la sélection d'un user
   const handleUserSelect = (userId) => {
     setSelectedUserId(userId);
+    // console.log("User sélectionné:", userId);
+  };
+
+  // Fonction pour calculer les styles de positionnement du user card
+  const getUserCardStyle = (firstShift, userIndex) => {
+    if (!firstShift) {
+      return { position: 'relative' };
+    }
+    const positionStyle = getShiftPosition(firstShift.start_time, firstShift.end_time);
+    console.log("Position du user card:", positionStyle, "index:", userIndex);
+    return {
+      position: 'absolute',
+      top: `${userIndex * 60}px`, // Espacement vertical entre les user cards
+      left: positionStyle.left,
+      width: positionStyle.width,
+      minWidth: '80px',
+    };
   };
 
   // console.log("Équipe sélectionnée:", selectedTeam);
@@ -203,8 +315,6 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
             <div key={hour} className="time-slot">
             </div>
           ))}
-        </div>
-      </div>
 
       <div className="users-list">
         {loadingUsers ? (
@@ -213,23 +323,53 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
           <p className="error">Erreur: {usersError}</p>
         ) : users.length > 0 ? (
           <div className="users-grid">
-            {users.map(user => (
-              <div 
-                key={user.id} 
-                className={`user-card ${selectedUserId === user.id ? 'selected' : ''}`}
-                onClick={() => handleUserSelect(user.id)}
-              >
-                <div className={`user-real-shift ${selectedUserId === user.id ? 'selected' : ''}`}>
-                  <h3>{`${user.first_name} ${user.last_name[0]}.`} </h3>
-                  <h3>75% </h3>
+            {users.map((user, index) => {
+              const userShifts = shiftsByUser[user.id] || [];
+              // Si l'utilisateur a au moins un shift, on positionne selon le premier
+              const firstShift = userShifts[0];
+              const positionStyle = firstShift
+                ? getShiftPosition(firstShift.start_time, firstShift.end_time)
+                : {};
+
+                // console.log("Rendu de l'utilisateur:", user.id, "avec shift:", firstShift); 
+
+              return (
+                <div 
+                  key={user.id} 
+                  className={`user-card ${selectedUserId === user.id ? 'selected' : ''}`}
+                  style={getUserCardStyle(firstShift, index)}
+                  onClick={() => handleUserSelect(user.id)}
+                >
+                  <div className={`user-real-shift ${selectedUserId === user.id ? 'selected' : ''}`}>
+                    <div className="shift-header">
+                      <h3>{`${user.first_name} ${user.last_name[0]}.`}</h3>
+                      {loadingShifts ? (
+                        <span className="shift-info">...</span>
+                      ) : firstShift ? (
+                        <span className="shift-info">
+                          <span style={{ color: getShiftTimeColor(firstShift.real_start_time, firstShift.start_time, true) }}>
+                            {formatHour(firstShift.real_start_time)}
+                          </span>
+                          {' - '}
+                          <span style={{ color: getShiftTimeColor(firstShift.real_end_time, firstShift.end_time, false) }}>
+                            {formatHour(firstShift.real_end_time)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="shift-info">Pas de shift</span>
+                      )}
+                    </div>
+                  </div>
 
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="no-users">Aucun membre trouvé pour cette équipe</p>
         )}
+      </div>
+        </div>
       </div>
 
       <PersonalInfo selectedUserId={selectedUserId} />
