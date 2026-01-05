@@ -2,6 +2,7 @@
 ARG NODE_VERSION
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
+ENV npm_config_cache=/npm-cache
 COPY package*.json ./
 RUN npm ci
 
@@ -13,7 +14,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules /app/node_modules
 COPY . .
 EXPOSE ${PORT_FRONT}
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "${PORT_FRONT}"]
+CMD ["sh","-lc","npm run dev -- --host 0.0.0.0 --port $PORT_FRONT --strictPort"]
 
 # ---------- build ----------
 FROM node:${NODE_VERSION} AS build
