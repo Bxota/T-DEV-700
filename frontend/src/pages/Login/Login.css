@@ -75,18 +75,3 @@ input:focus {
 .login-button:hover {
   background-color: #0056b3;
 }
-
-.register-text {
-  margin-top: 15px;
-  font-size: 14px;
-  color: #222;
-}
-
-.register-text a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.register-text a:hover {
-  text-decoration: underline;
-}

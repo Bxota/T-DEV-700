@@ -181,7 +181,6 @@ const Dashboard = () => {
             <h2 className="card-title">Mes shifts</h2>
             <div className="card-actions">
               <button className="pointage-button" onClick={fetchUserShifts} disabled={loading}>Rafraîchir</button>
-              <button className="pointage-button" onClick={createShift0812} disabled={loading}>Créer shift 19–20</button>
             </div>
           </div>
 
