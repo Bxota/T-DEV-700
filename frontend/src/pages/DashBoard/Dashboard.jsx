@@ -14,7 +14,15 @@ function parseJwtUserId(token) {
   } catch { return null; }
 }
 
-function fmtHHmm(iso) { return iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'; }
+function fmtHHmm(iso) {
+  return iso
+    ? new Date(iso).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : '—';
+}
 const toDate = (iso) => (iso ? new Date(iso) : null);
 
 const colorForCheckIn  = (plannedIso, realIso) => (!realIso ? '#111' : (toDate(realIso) <= toDate(plannedIso) ? 'green' : 'red'));
