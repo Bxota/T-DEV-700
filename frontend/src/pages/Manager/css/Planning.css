@@ -46,11 +46,6 @@
   position: relative;
 }
 
-.current-time-line {
-  z-index: 3;
-  position: absolute;
-}
-
 /* Si vous avez des éléments qui pourraient interférer */
 .scheduler-body {
   z-index: 1;
@@ -123,7 +118,7 @@
 }
 
 .shift-info {
-    font-size: 14px;
+    font-size: 22px;
     color: rgba(255, 255, 255, 0.8);
     margin: 0;
     white-space: nowrap;

@@ -325,6 +325,9 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
           <div className="users-grid">
             {users.map((user, index) => {
               const userShifts = shiftsByUser[user.id] || [];
+              // Ne pas afficher si pas de shift
+              if (userShifts.length === 0) return null;
+              
               // Si l'utilisateur a au moins un shift, on positionne selon le premier
               const firstShift = userShifts[0];
               const positionStyle = firstShift
@@ -333,7 +336,7 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
 
                 // console.log("Rendu de l'utilisateur:", user.id, "avec shift:", firstShift); 
 
-              return (
+                return (
                 <div 
                   key={user.id} 
                   className={`user-card ${selectedUserId === user.id ? 'selected' : ''}`}
@@ -341,39 +344,37 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
                   onClick={() => handleUserSelect(user.id)}
                 >
                   <div className={`user-real-shift ${selectedUserId === user.id ? 'selected' : ''}`}>
-                    <div className="shift-header">
-                      <h3>{`${user.first_name} ${user.last_name[0]}.`}</h3>
-                      {loadingShifts ? (
-                        <span className="shift-info">...</span>
-                      ) : firstShift ? (
-                        <span className="shift-info">
-                          <span style={{ color: getShiftTimeColor(firstShift.real_start_time, firstShift.start_time, true) }}>
-                            {formatHour(firstShift.real_start_time)}
-                          </span>
-                          {' - '}
-                          <span style={{ color: getShiftTimeColor(firstShift.real_end_time, firstShift.end_time, false) }}>
-                            {formatHour(firstShift.real_end_time)}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="shift-info">Pas de shift</span>
-                      )}
-                    </div>
+                  <div className="shift-header">
+                    <h3>{`${user.first_name} ${user.last_name[0]}.`}</h3>
+                    {loadingShifts ? (
+                    <span className="shift-info">...</span>
+                    ) : firstShift ? (
+                    <span className="shift-info">
+                      <span style={{ color: getShiftTimeColor(firstShift.real_start_time, firstShift.start_time, true) }}>
+                      {formatHour(firstShift.real_start_time)}
+                      </span>
+                      {' - '}
+                      <span style={{ color: getShiftTimeColor(firstShift.real_end_time, firstShift.end_time, false) }}>
+                      {formatHour(firstShift.real_end_time)}
+                      </span>
+                    </span>
+                    ) : null}
+                  </div>
                   </div>
 
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="no-users">Aucun membre trouvé pour cette équipe</p>
-        )}
-      </div>
-        </div>
-      </div>
+                );
+              })}
+              </div>
+            ) : (
+              <p className="no-users">Aucun membre trouvé pour cette équipe</p>
+            )}
+            </div>
+            </div>
+            </div>
 
-      <PersonalInfo selectedUserId={selectedUserId} />
+            <PersonalInfo selectedUserId={selectedUserId} selectedDate={selectedDate} />
 
-    </>
-  );
+          </>
+          );
 }

@@ -8,7 +8,7 @@ const defaultManager = {
   position: "Chef d'équipe",
 };
 
-export default function PersonalInfo({ selectedUserId }) {
+export default function PersonalInfo({ selectedUserId, selectedDate }) {
   const [manager, setManager] = useState(defaultManager);
   const [loadingUser, setLoadingUser] = useState(false);
   const [userError, setUserError] = useState(null);
@@ -71,9 +71,9 @@ export default function PersonalInfo({ selectedUserId }) {
     };
   }, [selectedUserId]);
 
-  // Récupération des shifts de l'utilisateur pour aujourd'hui
+  // Récupération des shifts de l'utilisateur pour la date sélectionnée
   useEffect(() => {
-    if (!selectedUserId) {
+    if (!selectedUserId || !selectedDate) {
       setShifts([]);
       setShiftsError(null);
       return;
@@ -85,14 +85,16 @@ export default function PersonalInfo({ selectedUserId }) {
 
     const fetchShifts = async () => {
       try {
-        // Construire la date d'aujourd'hui en ISO
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const fromDate = today.toISOString();
-        today.setHours(23, 59, 59, 999);
-        const toDate = today.toISOString();
+        // Construire la date sélectionnée en ISO
+        const fromDate = new Date(selectedDate);
+        fromDate.setHours(0, 0, 0, 0);
+        const fromDateISO = fromDate.toISOString();
+        
+        const toDate = new Date(selectedDate);
+        toDate.setHours(23, 59, 59, 999);
+        const toDateISO = toDate.toISOString();
 
-        const url = `/api/users/${selectedUserId}/shifts/list?from=${encodeURIComponent(fromDate)}&to=${encodeURIComponent(toDate)}`;
+        const url = `/api/users/${selectedUserId}/shifts/list?from=${encodeURIComponent(fromDateISO)}&to=${encodeURIComponent(toDateISO)}`;
         const response = await fetch(url, {
           headers: getAuthHeaders(),
         });
@@ -126,7 +128,7 @@ export default function PersonalInfo({ selectedUserId }) {
     return () => {
       isMounted = false;
     };
-  }, [selectedUserId]);
+  }, [selectedUserId, selectedDate]);
 
   // Récupération des reports de l'utilisateur
   useEffect(() => {
