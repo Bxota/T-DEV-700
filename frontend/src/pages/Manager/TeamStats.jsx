@@ -124,7 +124,7 @@ export default function TeamStats({ selectedTeam }) {
           <div className="metric-card">
             <div className="metric-header">
               <h4>Taux d'absence</h4>
-              <span className="metric-value">{teamData.absences_rate}%</span>
+              <span className="metric-value">{teamData.absences_rate != null && (teamData.absences_rate % 1 !== 0 ? teamData.absences_rate.toFixed(2) : Math.round(teamData.absences_rate))}%</span>
             </div>
             <div className="absence-display">
               <CircleProgress percentage={teamData.absences_rate} />
@@ -135,11 +135,11 @@ export default function TeamStats({ selectedTeam }) {
           <div className="metric-card">
             <div className="metric-header">
               <h4>Nombre d'heures travaillées</h4>
-            <span className="metric-value">{teamData.total_worked_minutes/60}h</span>
+            <span className="metric-value">{teamData.total_worked_minutes != null && ((teamData.total_worked_minutes/60) % 1 !== 0 ? (teamData.total_worked_minutes/60).toFixed(2) : Math.round(teamData.total_worked_minutes/60))}h</span>
             </div>
             <div className="metric-header">
               <h4>quantité de retard</h4>
-              <span className="metric-value"> {teamData.lateness_count ? `${teamData.lateness_count} / ${teamData.lateness_count * 100 / teamData.lateness_rate}` : 0}</span>
+              <span className="metric-value">{teamData.lateness_count != null && teamData.lateness_rate != null ? `${teamData.lateness_count} / ${(teamData.lateness_count * 100 / teamData.lateness_rate) % 1 !== 0 ? (teamData.lateness_count * 100 / teamData.lateness_rate).toFixed(2) : Math.round(teamData.lateness_count * 100 / teamData.lateness_rate)}` : 0}</span>
             </div>
             <ProgressBar 
               percentage={teamData.lateness_rate}

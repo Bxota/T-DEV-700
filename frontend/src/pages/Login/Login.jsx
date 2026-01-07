@@ -37,7 +37,7 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page"> {/* 👉 classe spécifique */}
+    <div className="login-page"> 
       <div className="login-container">
         <div className="login-card">
           <h2>Connexion</h2>
@@ -74,10 +74,6 @@ export default function Login() {
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
-
-          <p className="register-text">
-            Pas encore de compte ? <a href="/register">Créer un compte</a>
-          </p>
         </div>
       </div>
     </div>

@@ -14,7 +14,15 @@ function parseJwtUserId(token) {
   } catch { return null; }
 }
 
-function fmtHHmm(iso) { return iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'; }
+function fmtHHmm(iso) {
+  return iso
+    ? new Date(iso).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : '—';
+}
 const toDate = (iso) => (iso ? new Date(iso) : null);
 
 const colorForCheckIn  = (plannedIso, realIso) => (!realIso ? '#111' : (toDate(realIso) <= toDate(plannedIso) ? 'green' : 'red'));
@@ -179,10 +187,6 @@ const Dashboard = () => {
         <section className="dashboard-card">
           <div className="card-header">
             <h2 className="card-title">Mes shifts</h2>
-            <div className="card-actions">
-              <button className="pointage-button" onClick={fetchUserShifts} disabled={loading}>Rafraîchir</button>
-              <button className="pointage-button" onClick={createShift0812} disabled={loading}>Créer shift 19–20</button>
-            </div>
           </div>
 
           {loading && <p className="muted-text">Chargement…</p>}
@@ -285,7 +289,7 @@ const Dashboard = () => {
 
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                   <div style={{ fontSize: 28, fontWeight: 700 }}>{Math.round(stats.pct.green)}%</div>
-                  <div className="muted-text" style={{ marginTop: 4 }}>Présence OK</div>
+                  <div className="muted-text" style={{ marginTop: 4 }}>Présence</div>
                 </div>
               </div>
             );
@@ -294,15 +298,15 @@ const Dashboard = () => {
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 10, height: 10, background: '#28a745', borderRadius: 2 }}></span>
-              <span>OK {stats.green}/{stats.total}</span>
+              <span>OK </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 10, height: 10, background: '#e74c3c', borderRadius: 2 }}></span>
-              <span>En anomalie {stats.red}/{stats.total}</span>
+              <span>En retard </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 10, height: 10, background: '#e0e0e0', borderRadius: 2 }}></span>
-              <span>Non pointé {stats.gray}/{stats.total}</span>
+              <span>Non pointé </span>
             </div>
           </div>
         </aside>

@@ -19,9 +19,15 @@ body {
 
 /* Styles pour les cartes */
 
-.datepicker-input {
-  width: 45%;
+.datepicker-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 8px;
+}
+
+.datepicker-input {
+  width: 160px;
   padding: 8px 12px;
   border: 1px solid #ced4da;
   border-radius: 4px;
@@ -33,7 +39,35 @@ body {
   position: relative; /* Ajouté pour que le z-index fonctionne */
 }
 
+.date-nav-btn {
+  background: linear-gradient(135deg, #5289c3 0%, #456f9c 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  padding-bottom: 6px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
+.date-nav-btn:hover {
+  background: linear-gradient(135deg, #456f9c 0%, #3a5580 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.date-nav-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
 .team-selector {
     width: 24%;
@@ -86,7 +120,7 @@ body {
 
 .manager-card {
   background: white;
-  padding-top: 12px;
+  padding: 12px;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 74%;
@@ -241,15 +275,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  outline: none; /* Supprime le contour au focus/clic */
+  outline: none;
+  margin-bottom: 5px;
+  border-radius: 6px;
 }
 
 .stats-arrow-btn:focus {
-  outline: none; /* Supprime le contour au focus */
+  outline: none;
 }
 
 .stats-arrow-btn:active {
-  outline: none; /* Supprime le contour au clic */
+  outline: none;
 }
 
 .stats-arrow-btn:hover {
@@ -259,7 +295,7 @@ body {
 }
 
 .stats-arrow-btn.active {
-  bottom: 45vh;
+  bottom: calc(var(--panel-height, 0px) + 1px);
   background: #5289c3;
 }
 
@@ -274,12 +310,13 @@ body {
   font-weight: bold;
   transition: transform 0.3s ease;
   line-height: 1;
-  transform: rotate(-90deg); /* Par défaut pointe vers le haut */
+  transform: rotate(-90deg); /* Par défaut pointe vers le haut et décalé à gauche */
+  padding-bottom: 4px;
 }
 
 /* Rotation de la flèche quand le panneau est ouvert */
 .stats-arrow-btn.active .arrow-icon {
-  transform: rotate(90deg); /* Pointe vers le bas quand ouvert */
+  transform: rotate(90deg); /* Pointe vers le bas quand ouvert et décalé à droite */
 }
 
 /* Panneau des statistiques */
@@ -692,7 +729,7 @@ body {
   bottom: 0;
   width: 2px;
   background-color: #dc3545;
-  z-index: 10;
+  z-index: 10000;
   pointer-events: none;
 }
 
@@ -705,7 +742,7 @@ body {
   height: 10px;
   background-color: #dc3545;
   border-radius: 50%;
-    z-index: 10;
+    z-index: 10000;
 
 }
 
@@ -720,6 +757,6 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-    z-index: 10;
+    z-index: 10000;
 
 }
