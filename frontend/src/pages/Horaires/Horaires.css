@@ -8,7 +8,6 @@
 
 /* Suppression de l'ancien template-add-button - remplacé par template-generate-button */
 .template-generate-button {
-  position: absolute;
   top: 14vh;
   background-color: #17a2b8;
   color: white;

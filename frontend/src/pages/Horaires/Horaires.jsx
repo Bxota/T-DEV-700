@@ -1184,7 +1184,7 @@ const Horaires = () => {
                     <td>{getWeekdayName(rule.weekday)}</td>
                     <td>{formatTime(rule.start_local_time)}</td>
                     <td>{formatDuration(rule.duration_minutes)}</td>
-                    <td>{rule.effective_from} - {rule.effective_to}</td>
+                    <td>{formatDate(rule.effective_from)} - {formatDate(rule.effective_to)}</td>
                     <td>{rule.apply_to_whole_team ? 'Toute l\'équipe' : `${rule.assigned_user_ids?.length || 0} utilisateur(s)`}</td>
                     <td className="horaires-actions-cell" onClick={(e) => e.stopPropagation()}>
                       <button className="horaires-btn horaires-btn-edit" onClick={() => openEditRule(rule)}>
@@ -1732,7 +1732,7 @@ const Horaires = () => {
               <p><strong>Jour de la semaine :</strong> {getWeekdayName(viewingRule.weekday)}</p>
               <p><strong>Heure de début :</strong> {formatTime(viewingRule.start_local_time)}</p>
               <p><strong>Durée :</strong> {formatDuration(viewingRule.duration_minutes)}</p>
-              <p><strong>Période :</strong> {viewingRule.effective_from} - {viewingRule.effective_to}</p>
+              <p><strong>Période :</strong> {formatDate(viewingRule.effective_from)} - {formatDate(viewingRule.effective_to)}</p>
               <p><strong>Assignation :</strong> {viewingRule.apply_to_whole_team ? 'Toute l\'équipe' : `${viewingRule.assigned_user_ids?.length || 0} utilisateur(s)`}</p>
             </div>
 
