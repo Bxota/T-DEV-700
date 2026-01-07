@@ -276,6 +276,8 @@ body {
   align-items: center;
   justify-content: center;
   outline: none;
+  margin-bottom: 5px;
+  border-radius: 6px;
 }
 
 .stats-arrow-btn:focus {
