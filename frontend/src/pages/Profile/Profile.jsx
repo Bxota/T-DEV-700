@@ -96,8 +96,8 @@ const Profile = () => {
         last_name : user.lastName,
         email     : user.email,
         phone_number: user.phone,
-        role: user.role?.id ? { id: user.role.id } : undefined, 
-        team: user.team?.id ? { id: user.team.id } : undefined,
+        //role: user.role?.id ? { id: user.role.id } : undefined, 
+        //team: user.team?.id ? { id: user.team.id } : undefined,
       };
 
       await fetch(`${BASE}/users/me/`, {
@@ -223,34 +223,23 @@ const Profile = () => {
                   <span>{displayValue(user.phone, 'Téléphone')}</span>
                 )}
               </div>
-
               <div className="info-group">
                 <label>Rôle</label>
-                {isEditing ? (
-                  <select
-                    name="roleName"
-                    value={user.role?.name || ''}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">—</option>
-                    <option value="Developer">Developer</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Designer">Designer</option>
-                    <option value="Admin">Admin</option>
-                  </select>
-                ) : (
-                  <span>{displayValue(user.role?.name, 'Rôle')}</span>
-                )}
+                <input
+                  type="text"
+                  value={displayValue(user.role?.name, 'Rôle')}
+                  disabled
+                  readOnly
+                />
               </div>
-
               <div className="info-group">
                 <label>Équipe</label>
                 {isEditing ? (
                   <input
                     type="text"
-                    name="teamName"
-                    value={user.team?.name || ''}
-                    onChange={handleInputChange}
+                    value={displayValue(user.team?.name, 'Équipe')}
+                    disabled
+                    readOnly
                   />
                 ) : (
                   <span>{displayValue(user.team?.name, 'Équipe')}</span>
