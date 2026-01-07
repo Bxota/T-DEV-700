@@ -101,3 +101,18 @@
   .dashboard-content { grid-template-columns: 1fr; }
   .dashboard-card.small { order: -1; }
 }
+
+.pointage-button {
+  width: 160px;
+  padding: 12px 0;
+  cursor: pointer;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: background-color 0.2s;
+  text-align: center;
+}
+.pointage-button:hover    { background-color: #0056b3; }
+.pointage-button:disabled { opacity: .5; cursor: not-allowed; }
