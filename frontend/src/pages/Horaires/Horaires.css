@@ -572,6 +572,10 @@
   color: #dc3545;
 }
 
+.horaires-success-modal .horaires-modal-body {
+  color: #111;
+}
+
 .horaires-error-modal .error-content {
   display: flex;
   align-items: flex-start;

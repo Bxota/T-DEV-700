@@ -268,11 +268,11 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
   };
 
   // Fonction pour calculer les styles de positionnement du user card
-  const getUserCardStyle = (firstShift, userIndex) => {
-    if (!firstShift) {
+  const getUserCardStyle = (shift, userIndex) => {
+    if (!shift) {
       return { position: 'relative' };
     }
-    const positionStyle = getShiftPosition(firstShift.start_time, firstShift.end_time);
+    const positionStyle = getShiftPosition(shift.start_time, shift.end_time);
     console.log("Position du user card:", positionStyle, "index:", userIndex);
     return {
       position: 'absolute',
@@ -325,46 +325,40 @@ export default function Planning({ selectedTeam, selectedDate, teams }) {
           <div className="users-grid">
             {users.map((user, index) => {
               const userShifts = shiftsByUser[user.id] || [];
-              // Ne pas afficher si pas de shift
               if (userShifts.length === 0) return null;
-              
-              // Si l'utilisateur a au moins un shift, on positionne selon le premier
-              const firstShift = userShifts[0];
-              const positionStyle = firstShift
-                ? getShiftPosition(firstShift.start_time, firstShift.end_time)
-                : {};
 
-                // console.log("Rendu de l'utilisateur:", user.id, "avec shift:", firstShift); 
-
-                return (
-                <div 
-                  key={user.id} 
-                  className={`user-card ${selectedUserId === user.id ? 'selected' : ''}`}
-                  style={getUserCardStyle(firstShift, index)}
-                  onClick={() => handleUserSelect(user.id)}
-                >
-                  <div className={`user-real-shift ${selectedUserId === user.id ? 'selected' : ''}`}>
-                  <div className="shift-header">
-                    <h3>{`${user.first_name} ${user.last_name[0]}.`}</h3>
-                    {loadingShifts ? (
-                    <span className="shift-info">...</span>
-                    ) : firstShift ? (
-                    <span className="shift-info">
-                      <span style={{ color: getShiftTimeColor(firstShift.real_start_time, firstShift.start_time, true) }}>
-                      {formatHour(firstShift.real_start_time)}
-                      </span>
-                      {' - '}
-                      <span style={{ color: getShiftTimeColor(firstShift.real_end_time, firstShift.end_time, false) }}>
-                      {formatHour(firstShift.real_end_time)}
-                      </span>
-                    </span>
-                    ) : null}
-                  </div>
-                  </div>
-
-                </div>
-                );
-              })}
+              return (
+                <React.Fragment key={`user-${user.id}`}>
+                  {userShifts.map((shift, sIdx) => (
+                    <div
+                      key={shift.id ? `${user.id}-${shift.id}` : `${user.id}-${sIdx}`}
+                      className={`user-card ${selectedUserId === user.id ? 'selected' : ''}`}
+                      style={getUserCardStyle(shift, index)}
+                      onClick={() => handleUserSelect(user.id)}
+                    >
+                      <div className={`user-real-shift ${selectedUserId === user.id ? 'selected' : ''}`}>
+                        <div className="shift-header">
+                          <h3>{`${user.first_name} ${user.last_name[0]}.`}</h3>
+                          {loadingShifts ? (
+                            <span className="shift-info">...</span>
+                          ) : (
+                            <span className="shift-info">
+                              <span style={{ color: getShiftTimeColor(shift.real_start_time, shift.start_time, true) }}>
+                                {formatHour(shift.real_start_time)}
+                              </span>
+                              {' - '}
+                              <span style={{ color: getShiftTimeColor(shift.real_end_time, shift.end_time, false) }}>
+                                {formatHour(shift.real_end_time)}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              );
+            })}
               </div>
             ) : (
               <p className="no-users">Aucun membre trouvé pour cette équipe</p>
