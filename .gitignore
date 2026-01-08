@@ -12,3 +12,6 @@ __pycache__/
 .DS_Store
 htmlcov/
 coverage.zip
+/Spec.txt
+/docs/time_manager_devops_notes.md
+/docs/todo.md
