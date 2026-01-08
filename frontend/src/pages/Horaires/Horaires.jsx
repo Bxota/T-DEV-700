@@ -40,7 +40,7 @@ const Horaires = () => {
   const [newHoraireData, setNewHoraireData] = useState({
     name: '',
     default_duration_minutes: 480, // 8 h
-    timezone: 'UTC',
+    timezone: 'Europe/Paris',
     role_id: null,
     is_active: true
   });
@@ -66,6 +66,7 @@ const Horaires = () => {
   });
   
   const [errorModal, setErrorModal] = useState({ show: false, message: '', title: '' });
+  const [successModal, setSuccessModal] = useState({ show: false, message: '', title: '' });
 
   // ÉTAT POUR LA GÉNÉRATION (pas de sélection de template)
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
@@ -240,7 +241,7 @@ const Horaires = () => {
     setNewHoraireData({
       name: '',
       default_duration_minutes: 480,
-      timezone: 'UTC',
+      timezone: 'Europe/Paris',
       role_id: null,
       is_active: true
     });
@@ -253,7 +254,7 @@ const Horaires = () => {
     setNewHoraireData({
       name: '',
       default_duration_minutes: 480,
-      timezone: 'UTC',
+      timezone: 'Europe/Paris',
       role_id: null,
       is_active: true
     });
@@ -268,6 +269,15 @@ const Horaires = () => {
 
   const closeErrorModal = () => {
     setErrorModal({ show: false, message: '', title: '' });
+  };
+
+  // Fonction pour afficher la modal de succès
+  const showSuccessModal = (title, message) => {
+    setSuccessModal({ show: true, title, message });
+  };
+
+  const closeSuccessModal = () => {
+    setSuccessModal({ show: false, message: '', title: '' });
   };
 
   const handleAddHoraire = async () => {
@@ -286,7 +296,7 @@ const Horaires = () => {
       const payload = {
         name: newHoraireData.name.trim(),
         default_duration_minutes: parseInt(newHoraireData.default_duration_minutes),
-        timezone: "UTC",
+        timezone: "Europe/Paris",
         role_id: newHoraireData.role_id ? parseInt(newHoraireData.role_id) : null,
         is_active: newHoraireData.is_active
       };
@@ -681,11 +691,14 @@ const Horaires = () => {
         console.log('Planning généré avec succès:', responseData);
         
         // Calculer les dates pour l'affichage
-        const startDate = new Date().toLocaleDateString('fr-FR');
-        const endDate = new Date(Date.now() + (numberOfDays - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR');
+        const startDate = formatDate(new Date());
+        const endDate = formatDate(new Date(Date.now() + (numberOfDays - 1) * 24 * 60 * 60 * 1000));
         
         // Afficher un message de succès avec les dates calculées
-        showErrorModal('Succès', `Planning généré avec succès pour ${numberOfDays} jour(s) à partir d'aujourd'hui (du ${startDate} au ${endDate})`);
+        showSuccessModal(
+          'Planning généré',
+          `Planning généré avec succès pour ${numberOfDays} jour(s) à partir d'aujourd'hui : du ${startDate} au ${endDate}.`
+        );
         
         closeGenerateTemplate();
         
@@ -1434,6 +1447,33 @@ const Horaires = () => {
             </div>
             <div className="horaires-modal-buttons">
               <button className="horaires-btn horaires-btn-cancel" onClick={closeErrorModal}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de succès */}
+      {successModal.show && (
+        <div className="horaires-modal-overlay" onClick={closeSuccessModal}>
+          <div className="horaires-modal horaires-success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="horaires-modal-header">
+              <h2 style={{ color: '#198754' }}>{successModal.title}</h2>
+              <button className="horaires-modal-close" onClick={closeSuccessModal}>
+                ×
+              </button>
+            </div>
+            <div className="horaires-modal-body" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px', color: '#198754' }}>✅</span>
+                <p style={{ margin: 0, fontSize: '16px', lineHeight: '1.5' }}>
+                  {successModal.message}
+                </p>
+              </div>
+            </div>
+            <div className="horaires-modal-buttons">
+              <button className="horaires-btn horaires-btn-save" onClick={closeSuccessModal}>
                 OK
               </button>
             </div>

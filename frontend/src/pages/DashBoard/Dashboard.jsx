@@ -4,6 +4,7 @@ import { BASE as ENV_BASE, getAuthHeaders, getAccess, logout } from '../../api/a
 
 const API_BASE = (ENV_BASE || '/api').replace(/\/$/, '');
 const u = (p) => `${API_BASE}${p}`;
+const CHECKIN_EARLY_MINUTES = 60;
 
 function parseJwtUserId(token) {
   try {
@@ -74,7 +75,7 @@ const humanDelay = (msLeft) => {
   const h = Math.floor(m / 60), r = m % 60;
   return r ? `${h}h${String(r).padStart(2, '0')}` : `${h}h`;
 };
-const canCheckInNow = (s, earlyMinutes = 15) => {
+const canCheckInNow = (s, earlyMinutes = CHECKIN_EARLY_MINUTES) => {
   const now = Date.now();
   const planned = new Date(s.start_time).getTime();
   return now >= (planned - ms(earlyMinutes));
@@ -139,8 +140,8 @@ const Dashboard = () => {
   }
 
   async function rowCheckIn(s) {
-    if (!canCheckInNow(s, 15)) {
-      setError(`⏰ Trop tôt pour le check-in. Autorisé à partir de ${fmtHHmm(s.start_time)} (fenêtre -15 min).`);
+    if (!canCheckInNow(s, CHECKIN_EARLY_MINUTES)) {
+      setError(`Trop tôt pour le check-in. Autorisé à partir de ${fmtHHmm(s.start_time)} (fenêtre -${CHECKIN_EARLY_MINUTES} min).`);
       return;
     }
     setError(''); setLoading(true);
@@ -200,9 +201,9 @@ const Dashboard = () => {
 
                 const nowTs = Date.now();
                 const startTs = new Date(s.start_time).getTime();
-                const openIn  = Math.max(0, (startTs - ms(15)) - nowTs);
+                const openIn  = Math.max(0, (startTs - ms(CHECKIN_EARLY_MINUTES)) - nowTs);
 
-                const canIn  = canCheckInNow(s, 15);
+                const canIn  = canCheckInNow(s, CHECKIN_EARLY_MINUTES);
                 const canOut = canCheckOutNow(s);
 
                 return (
@@ -223,8 +224,7 @@ const Dashboard = () => {
                           className="pointage-button"
                           onClick={() => rowCheckIn(s)}
                           disabled={!canIn || !!s.real_start_time || completedToday || loading}
-                          title={`Check-in prévu ${fmtHHmm(s.start_time)} (autorisé -15 min)`}
-                        >
+                          title={`Check-in prévu ${fmtHHmm(s.start_time)} (autorisé -${CHECKIN_EARLY_MINUTES} min)`}                        >
                           {`Check-in ${fmtHHmm(s.start_time)}`}
                         </button>
                         <span className="pointage-time" style={{ color: colorForCheckIn(s.start_time, s.real_start_time) }}>
