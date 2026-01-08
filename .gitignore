@@ -1,4 +1,5 @@
 .env*
+.env
 !*.example
 backend/.env*
 frontend/.env*
@@ -12,6 +13,8 @@ __pycache__/
 .DS_Store
 htmlcov/
 coverage.zip
-/Spec.txt
+/docs/time_manager_dev_ops_non_sensitive_summary.md
 /docs/time_manager_devops_notes.md
 /docs/todo.md
+Spec.txt
+/monitoring/README.md
